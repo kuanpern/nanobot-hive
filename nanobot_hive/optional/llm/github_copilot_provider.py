@@ -1,16 +1,17 @@
-"""GitHub Copilot OAuth-backed provider."""
+"""GitHub Copilot OAuth-backed provider using LangChain's ChatOpenAI."""
 
 from __future__ import annotations
 
 import time
 import webbrowser
-from collections.abc import Callable
+from collections.abc import Awaitable, Callable
+from typing import Any
 
 import httpx
 from oauth_cli_kit.models import OAuthToken
 from oauth_cli_kit.storage import FileTokenStorage
 
-from nanobot_hive.optional.llm.openai import OpenAICompatProvider
+from nanobot_hive.optional.llm.langchain_provider import LangChainProvider
 
 DEFAULT_GITHUB_DEVICE_CODE_URL = "https://github.com/login/device/code"
 DEFAULT_GITHUB_ACCESS_TOKEN_URL = "https://github.com/login/oauth/access_token"
@@ -26,6 +27,12 @@ EDITOR_VERSION = "vscode/1.99.0"
 EDITOR_PLUGIN_VERSION = "copilot-chat/0.26.0"
 _EXPIRY_SKEW_SECONDS = 60
 _LONG_LIVED_TOKEN_SECONDS = 315360000
+
+_COPILOT_EXTRA_HEADERS = {
+    "Editor-Version": EDITOR_VERSION,
+    "Editor-Plugin-Version": EDITOR_PLUGIN_VERSION,
+    "User-Agent": USER_AGENT,
+}
 
 
 def _storage() -> FileTokenStorage:
@@ -155,25 +162,30 @@ def login_github_copilot(
     return token
 
 
-class GitHubCopilotProvider(OpenAICompatProvider):
-    """Provider that exchanges a stored GitHub OAuth token for Copilot access tokens."""
+class GitHubCopilotProvider(LangChainProvider):
+    """Provider that exchanges a stored GitHub OAuth token for Copilot access tokens.
 
-    def __init__(self, default_model: str = "github-copilot/gpt-4.1"):
+    Uses LangChain's ChatOpenAI for the actual API calls; rebuilds the model
+    whenever the short-lived Copilot access token is refreshed.
+    """
+
+    def __init__(self, default_model: str = "github-copilot/gpt-4.1") -> None:
+        from langchain_openai import ChatOpenAI
         from nanobot_hive.optional.llm.registry import find_by_name
 
         self._copilot_access_token: str | None = None
         self._copilot_expires_at: float = 0.0
-        super().__init__(
+
+        # Placeholder model — replaced on first call via _ensure_fresh_model()
+        placeholder = ChatOpenAI(
+            model=default_model,
             api_key="no-key",
-            api_base=DEFAULT_COPILOT_BASE_URL,
-            default_model=default_model,
-            extra_headers={
-                "Editor-Version": EDITOR_VERSION,
-                "Editor-Plugin-Version": EDITOR_PLUGIN_VERSION,
-                "User-Agent": USER_AGENT,
-            },
-            spec=find_by_name("github_copilot"),
+            base_url=DEFAULT_COPILOT_BASE_URL,
+            default_headers=_COPILOT_EXTRA_HEADERS,
+            max_retries=0,
         )
+        super().__init__(placeholder, default_model)
+        del find_by_name  # imported only to verify registry entry exists
 
     async def _get_copilot_access_token(self) -> str:
         now = time.time()
@@ -182,7 +194,9 @@ class GitHubCopilotProvider(OpenAICompatProvider):
 
         github_token = _load_github_token()
         if not github_token or not github_token.access:
-            raise RuntimeError("GitHub Copilot is not logged in. Run: nanobot provider login github-copilot")
+            raise RuntimeError(
+                "GitHub Copilot is not logged in. Run: nanobot provider login github-copilot"
+            )
 
         timeout = httpx.Timeout(20.0, connect=20.0)
         async with httpx.AsyncClient(timeout=timeout, follow_redirects=True, trust_env=True) as client:
@@ -206,52 +220,49 @@ class GitHubCopilotProvider(OpenAICompatProvider):
         self._copilot_access_token = str(token)
         return self._copilot_access_token
 
-    async def _refresh_client_api_key(self) -> str:
+    async def _ensure_fresh_model(self) -> None:
+        """Rebuild the LangChain ChatOpenAI when the Copilot token changes."""
+        from langchain_openai import ChatOpenAI
         token = await self._get_copilot_access_token()
-        self.api_key = token
-        self._client.api_key = token
-        return token
+        if token != getattr(self._model, "openai_api_key", None):
+            self._model = ChatOpenAI(
+                model=self._default_model,
+                api_key=token,
+                base_url=DEFAULT_COPILOT_BASE_URL,
+                default_headers=_COPILOT_EXTRA_HEADERS,
+                max_retries=0,
+            )
 
-    async def chat(
+    def _get_model_for_call(
         self,
-        messages: list[dict[str, object]],
-        tools: list[dict[str, object]] | None = None,
-        model: str | None = None,
-        max_tokens: int = 4096,
-        temperature: float = 0.7,
-        reasoning_effort: str | None = None,
-        tool_choice: str | dict[str, object] | None = None,
-    ):
-        await self._refresh_client_api_key()
+        model: str | None,
+        max_tokens: int,
+        temperature: float,
+        reasoning_effort: str | None,
+    ) -> Any:
+        kwargs: dict[str, Any] = {
+            "model": model or self._default_model,
+            "max_tokens": max(1, max_tokens),
+            "temperature": temperature,
+        }
+        return self._model.bind(**kwargs)
+
+    async def chat(self, messages, tools=None, model=None, max_tokens=4096,
+                   temperature=0.7, reasoning_effort=None, tool_choice=None):
+        await self._ensure_fresh_model()
         return await super().chat(
-            messages=messages,
-            tools=tools,
-            model=model,
-            max_tokens=max_tokens,
-            temperature=temperature,
-            reasoning_effort=reasoning_effort,
-            tool_choice=tool_choice,
+            messages=messages, tools=tools, model=model,
+            max_tokens=max_tokens, temperature=temperature,
+            reasoning_effort=reasoning_effort, tool_choice=tool_choice,
         )
 
-    async def chat_stream(
-        self,
-        messages: list[dict[str, object]],
-        tools: list[dict[str, object]] | None = None,
-        model: str | None = None,
-        max_tokens: int = 4096,
-        temperature: float = 0.7,
-        reasoning_effort: str | None = None,
-        tool_choice: str | dict[str, object] | None = None,
-        on_content_delta: Callable[[str], None] | None = None,
-    ):
-        await self._refresh_client_api_key()
+    async def chat_stream(self, messages, tools=None, model=None, max_tokens=4096,
+                          temperature=0.7, reasoning_effort=None, tool_choice=None,
+                          on_content_delta: Callable[[str], Awaitable[None]] | None = None):
+        await self._ensure_fresh_model()
         return await super().chat_stream(
-            messages=messages,
-            tools=tools,
-            model=model,
-            max_tokens=max_tokens,
-            temperature=temperature,
-            reasoning_effort=reasoning_effort,
-            tool_choice=tool_choice,
+            messages=messages, tools=tools, model=model,
+            max_tokens=max_tokens, temperature=temperature,
+            reasoning_effort=reasoning_effort, tool_choice=tool_choice,
             on_content_delta=on_content_delta,
         )

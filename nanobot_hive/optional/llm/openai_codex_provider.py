@@ -1,4 +1,8 @@
-"""OpenAI Codex Responses Provider."""
+"""OpenAI Codex provider using OAuth and the private Responses API endpoint.
+
+LangChain does not support this private API, so we implement the HTTP logic
+directly with httpx (similar to the original openai_codex.py).
+"""
 
 from __future__ import annotations
 
@@ -24,9 +28,9 @@ DEFAULT_ORIGINATOR = "nanobot"
 
 
 class OpenAICodexProvider(LLMProvider):
-    """Use Codex OAuth to call the Responses API."""
+    """OpenAI Codex via OAuth and the private Responses API endpoint."""
 
-    def __init__(self, default_model: str = "openai-codex/gpt-5.1-codex"):
+    def __init__(self, default_model: str = "openai-codex/gpt-5.1-codex") -> None:
         super().__init__(api_key=None, api_base=None)
         self.default_model = default_model
 
@@ -39,7 +43,6 @@ class OpenAICodexProvider(LLMProvider):
         tool_choice: str | dict[str, Any] | None,
         on_content_delta: Callable[[str], Awaitable[None]] | None = None,
     ) -> LLMResponse:
-        """Shared request logic for both chat() and chat_stream()."""
         model = model or self.default_model
         system_prompt, input_items = convert_messages(messages)
 
@@ -84,25 +87,39 @@ class OpenAICodexProvider(LLMProvider):
             return LLMResponse(content=msg, finish_reason="error", retry_after=retry_after)
 
     async def chat(
-        self, messages: list[dict[str, Any]], tools: list[dict[str, Any]] | None = None,
-        model: str | None = None, max_tokens: int = 4096, temperature: float = 0.7,
+        self,
+        messages: list[dict[str, Any]],
+        tools: list[dict[str, Any]] | None = None,
+        model: str | None = None,
+        max_tokens: int = 4096,
+        temperature: float = 0.7,
         reasoning_effort: str | None = None,
         tool_choice: str | dict[str, Any] | None = None,
     ) -> LLMResponse:
         return await self._call_codex(messages, tools, model, reasoning_effort, tool_choice)
 
     async def chat_stream(
-        self, messages: list[dict[str, Any]], tools: list[dict[str, Any]] | None = None,
-        model: str | None = None, max_tokens: int = 4096, temperature: float = 0.7,
+        self,
+        messages: list[dict[str, Any]],
+        tools: list[dict[str, Any]] | None = None,
+        model: str | None = None,
+        max_tokens: int = 4096,
+        temperature: float = 0.7,
         reasoning_effort: str | None = None,
         tool_choice: str | dict[str, Any] | None = None,
         on_content_delta: Callable[[str], Awaitable[None]] | None = None,
     ) -> LLMResponse:
-        return await self._call_codex(messages, tools, model, reasoning_effort, tool_choice, on_content_delta)
+        return await self._call_codex(
+            messages, tools, model, reasoning_effort, tool_choice, on_content_delta,
+        )
 
     def get_default_model(self) -> str:
         return self.default_model
 
+
+# ---------------------------------------------------------------------------
+# Helpers
+# ---------------------------------------------------------------------------
 
 def _strip_model_prefix(model: str) -> str:
     if model.startswith("openai-codex/") or model.startswith("openai_codex/"):
@@ -123,7 +140,7 @@ def _build_headers(account_id: str, token: str) -> dict[str, str]:
 
 
 class _CodexHTTPError(RuntimeError):
-    def __init__(self, message: str, retry_after: float | None = None):
+    def __init__(self, message: str, retry_after: float | None = None) -> None:
         super().__init__(message)
         self.retry_after = retry_after
 

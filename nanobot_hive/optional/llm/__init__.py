@@ -26,11 +26,11 @@ _LAZY_IMPORTS = {
 }
 
 if TYPE_CHECKING:
-    from nanobot_hive.optional.llm.anthropic import AnthropicProvider
-    from nanobot_hive.optional.llm.azure_openai import AzureOpenAIProvider
-    from nanobot_hive.optional.llm.github_copilot import GitHubCopilotProvider
-    from nanobot_hive.optional.llm.openai import OpenAICompatProvider
-    from nanobot_hive.optional.llm.openai_codex import OpenAICodexProvider
+    from nanobot_hive.optional.llm.anthropic_provider import AnthropicProvider
+    from nanobot_hive.optional.llm.azure_openai_provider import AzureOpenAIProvider
+    from nanobot_hive.optional.llm.github_copilot_provider import GitHubCopilotProvider
+    from nanobot_hive.optional.llm.openai_compat_provider import OpenAICompatProvider
+    from nanobot_hive.optional.llm.openai_codex_provider import OpenAICodexProvider
 
 
 def __getattr__(name: str):
