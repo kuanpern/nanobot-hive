@@ -554,9 +554,9 @@ def serve(
         raise typer.Exit(1)
 
     from loguru import logger
-    from nanobot.core.loop import AgentLoop
+    from nanobot.agent.loop import AgentLoop
     from nanobot.api.server import create_app
-    from nanobot.optional.bus.asyncio_queue import MessageBus
+    from nanobot.optional.bus import get_bus
     from nanobot.session.manager import SessionManager
 
     if verbose:
@@ -570,7 +570,7 @@ def serve(
     port = port if port is not None else api_cfg.port
     timeout = timeout if timeout is not None else api_cfg.timeout
     sync_workspace_templates(runtime_config.workspace_path)
-    bus = MessageBus()
+    bus = get_bus()
     provider = _make_provider(runtime_config)
     session_manager = SessionManager(runtime_config.workspace_path)
     agent_loop = AgentLoop(
@@ -652,7 +652,7 @@ def _run_gateway(
 ) -> None:
     """Shared gateway runtime; ``open_browser_url`` opens a tab once channels are up."""
     from nanobot.agent.loop import AgentLoop
-    from nanobot.bus.queue import MessageBus
+    from nanobot.optional.bus import get_bus
     from nanobot.channels.manager import ChannelManager
     from nanobot.cron.service import CronService
     from nanobot.cron.types import CronJob
@@ -663,7 +663,7 @@ def _run_gateway(
 
     console.print(f"{__logo__} Starting nanobot gateway version {__version__} on port {port}...")
     sync_workspace_templates(config.workspace_path)
-    bus = MessageBus()
+    bus = get_bus()
     provider = _make_provider(config)
     session_manager = SessionManager(config.workspace_path)
 
@@ -1029,14 +1029,14 @@ def agent(
     """Interact with the agent directly."""
     from loguru import logger
 
-    from nanobot.core.loop import AgentLoop
-    from nanobot.optional.bus.asyncio_queue import MessageBus
+    from nanobot.agent.loop import AgentLoop
+    from nanobot.optional.bus import get_bus
     from nanobot.optional.scheduler.service import CronService
 
     config = _load_runtime_config(config, workspace)
     sync_workspace_templates(config.workspace_path)
 
-    bus = MessageBus()
+    bus = get_bus()
     provider = _make_provider(config)
 
     # Preserve existing single-workspace installs, but keep custom workspaces clean.

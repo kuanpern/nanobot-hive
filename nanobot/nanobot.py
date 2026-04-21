@@ -6,9 +6,9 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
-from nanobot.core.hook import AgentHook
-from nanobot.core.loop import AgentLoop
-from nanobot.optional.bus.asyncio_queue import MessageBus
+from nanobot.agent.hook import AgentHook
+from nanobot.agent.loop import AgentLoop
+from nanobot.optional.bus import get_bus
 
 
 @dataclass(slots=True)
@@ -63,7 +63,7 @@ class Nanobot:
             )
 
         provider = _make_provider(config)
-        bus = MessageBus()
+        bus = get_bus()
         defaults = config.agents.defaults
 
         loop = AgentLoop(
