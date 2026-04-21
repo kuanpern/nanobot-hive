@@ -1476,6 +1476,175 @@ def status():
 
 
 # ============================================================================
+# Cron Commands
+# ============================================================================
+
+cron_app = typer.Typer(help="Manage scheduled cron jobs")
+app.add_typer(cron_app, name="cron")
+
+
+def _load_cron_service(config: str | None = None, workspace: str | None = None):
+    """Return a CronService instance pointed at the configured store path."""
+    from nanobot.optional.scheduler.service import CronService
+
+    cfg = _load_runtime_config(config, workspace)
+    return CronService(cfg.workspace_path / "cron" / "jobs.json")
+
+
+@cron_app.command("list")
+def cron_list(
+    all_jobs: bool = typer.Option(False, "--all", "-a", help="Include disabled jobs"),
+    config: str | None = typer.Option(None, "--config", "-c", help="Path to config file"),
+    workspace: str | None = typer.Option(None, "--workspace", "-w", help="Workspace directory"),
+):
+    """List scheduled cron jobs."""
+    from datetime import datetime
+
+    cron = _load_cron_service(config, workspace)
+    jobs = cron.list_jobs(include_disabled=all_jobs)
+
+    if not jobs:
+        console.print("[dim]No scheduled jobs.[/dim]")
+        return
+
+    table = Table(title="Scheduled Jobs")
+    table.add_column("ID", style="cyan", no_wrap=True)
+    table.add_column("Name", style="white")
+    table.add_column("Schedule", style="yellow")
+    table.add_column("Next Run", style="green")
+    table.add_column("Status", style="magenta")
+
+    for job in jobs:
+        s = job.schedule
+        if s.kind == "cron":
+            tz_suffix = f" ({s.tz})" if s.tz else ""
+            schedule_str = f"cron: {s.expr}{tz_suffix}"
+        elif s.kind == "every" and s.every_ms:
+            ms = s.every_ms
+            if ms % 3_600_000 == 0:
+                schedule_str = f"every {ms // 3_600_000}h"
+            elif ms % 60_000 == 0:
+                schedule_str = f"every {ms // 60_000}m"
+            elif ms % 1_000 == 0:
+                schedule_str = f"every {ms // 1_000}s"
+            else:
+                schedule_str = f"every {ms}ms"
+        elif s.kind == "at" and s.at_ms:
+            dt = datetime.fromtimestamp(s.at_ms / 1000)
+            schedule_str = f"at {dt.strftime('%Y-%m-%dT%H:%M:%S')}"
+        else:
+            schedule_str = s.kind
+
+        if job.state.next_run_at_ms:
+            next_dt = datetime.fromtimestamp(job.state.next_run_at_ms / 1000)
+            next_run = next_dt.strftime("%Y-%m-%d %H:%M:%S")
+        else:
+            next_run = "—"
+
+        last = job.state.last_status
+        if last == "ok":
+            status_str = "[green]ok[/green]"
+        elif last == "error":
+            status_str = "[red]error[/red]"
+        elif last:
+            status_str = last
+        else:
+            status_str = "[dim]—[/dim]"
+
+        table.add_row(job.id, job.name, schedule_str, next_run, status_str)
+
+    console.print(table)
+
+
+@cron_app.command("add")
+def cron_add(
+    name: str = typer.Argument(..., help="Human-readable name for the job"),
+    message: str = typer.Option(..., "--message", "-m", help="Instruction for the agent when the job triggers"),
+    every: int | None = typer.Option(None, "--every", help="Repeat every N seconds"),
+    cron_expr: str | None = typer.Option(None, "--cron", help="Cron expression (e.g. '0 9 * * *')"),
+    at: str | None = typer.Option(None, "--at", help="One-time ISO datetime (e.g. '2026-12-01T09:00:00')"),
+    tz: str | None = typer.Option(None, "--tz", help="IANA timezone for --cron (e.g. 'America/New_York')"),
+    deliver: bool = typer.Option(False, "--deliver", help="Deliver the result back to a channel"),
+    channel: str = typer.Option("cli", "--channel", help="Channel to deliver results to"),
+    to: str = typer.Option("direct", "--to", help="Chat ID to deliver results to"),
+    config: str | None = typer.Option(None, "--config", "-c", help="Path to config file"),
+    workspace: str | None = typer.Option(None, "--workspace", "-w", help="Workspace directory"),
+):
+    """Add a new scheduled cron job."""
+    from datetime import datetime
+    from zoneinfo import ZoneInfo
+
+    from nanobot.optional.scheduler.types import CronSchedule
+
+    provided = sum(x is not None for x in (every, cron_expr, at))
+    if provided == 0:
+        console.print("[red]Error: specify one of --every, --cron, or --at[/red]")
+        raise typer.Exit(1)
+    if provided > 1:
+        console.print("[red]Error: only one of --every, --cron, or --at may be used[/red]")
+        raise typer.Exit(1)
+    if tz and not cron_expr:
+        console.print("[red]Error: --tz is only valid with --cron[/red]")
+        raise typer.Exit(1)
+
+    delete_after = False
+    if every is not None:
+        if every <= 0:
+            console.print("[red]Error: --every must be a positive integer[/red]")
+            raise typer.Exit(1)
+        schedule = CronSchedule(kind="every", every_ms=every * 1_000)
+    elif cron_expr is not None:
+        effective_tz = tz or "UTC"
+        try:
+            ZoneInfo(effective_tz)
+        except Exception:
+            console.print(f"[red]Error: unknown timezone '{effective_tz}'[/red]")
+            raise typer.Exit(1)
+        schedule = CronSchedule(kind="cron", expr=cron_expr, tz=effective_tz)
+    else:
+        try:
+            dt = datetime.fromisoformat(at)
+        except ValueError:
+            console.print(f"[red]Error: invalid ISO datetime '{at}' — expected YYYY-MM-DDTHH:MM:SS[/red]")
+            raise typer.Exit(1)
+        if dt.tzinfo is None:
+            dt = dt.replace(tzinfo=ZoneInfo("UTC"))
+        schedule = CronSchedule(kind="at", at_ms=int(dt.timestamp() * 1_000))
+        delete_after = True
+
+    cron = _load_cron_service(config, workspace)
+    job = cron.add_job(
+        name=name,
+        schedule=schedule,
+        message=message,
+        deliver=deliver,
+        channel=channel if deliver else None,
+        to=to if deliver else None,
+        delete_after_run=delete_after,
+    )
+    console.print(f"[green]✓[/green] Created job '[cyan]{job.name}[/cyan]' (id: [yellow]{job.id}[/yellow])")
+
+
+@cron_app.command("remove")
+def cron_remove(
+    job_id: str = typer.Argument(..., help="ID of the job to remove"),
+    config: str | None = typer.Option(None, "--config", "-c", help="Path to config file"),
+    workspace: str | None = typer.Option(None, "--workspace", "-w", help="Workspace directory"),
+):
+    """Remove a scheduled cron job."""
+    cron = _load_cron_service(config, workspace)
+    result = cron.remove_job(job_id)
+    if result == "removed":
+        console.print(f"[green]✓[/green] Removed job [yellow]{job_id}[/yellow]")
+    elif result == "protected":
+        console.print(f"[red]✗[/red] Job [yellow]{job_id}[/yellow] is a protected system job")
+        raise typer.Exit(1)
+    else:
+        console.print(f"[red]✗[/red] Job [yellow]{job_id}[/yellow] not found")
+        raise typer.Exit(1)
+
+
+# ============================================================================
 # OAuth Login
 # ============================================================================
 
