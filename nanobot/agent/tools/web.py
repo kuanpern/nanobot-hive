@@ -14,6 +14,7 @@ import httpx
 import structlog
 logger = structlog.get_logger()
 
+from nanobot.telemetry import record_metric, trace
 from nanobot.core.tools.base import Tool, tool_parameters
 from nanobot.core.tools.schema import IntegerSchema, StringSchema, tool_parameters_schema
 from nanobot.utils.helpers import build_image_content_blocks
@@ -311,33 +312,36 @@ class WebFetchTool(Tool):
         return True
 
     async def execute(self, url: str, extractMode: str = "markdown", maxChars: int | None = None, **kwargs: Any) -> Any:
-        max_chars = maxChars or self.max_chars
-        is_valid, error_msg = _validate_url_safe(url)
-        if not is_valid:
-            return json.dumps({"error": f"URL validation failed: {error_msg}", "url": url}, ensure_ascii=False)
+        async with trace("web_fetch"):
+            max_chars = maxChars or self.max_chars
+            is_valid, error_msg = _validate_url_safe(url)
+            if not is_valid:
+                return json.dumps({"error": f"URL validation failed: {error_msg}", "url": url}, ensure_ascii=False)
 
-        # Detect and fetch images directly to avoid Jina's textual image captioning
-        try:
-            async with httpx.AsyncClient(proxy=self.proxy, follow_redirects=True, max_redirects=MAX_REDIRECTS, timeout=15.0) as client:
-                async with client.stream("GET", url, headers={"User-Agent": USER_AGENT}) as r:
-                    from nanobot.security.network import validate_resolved_url
+            # Detect and fetch images directly to avoid Jina's textual image captioning
+            try:
+                async with httpx.AsyncClient(proxy=self.proxy, follow_redirects=True, max_redirects=MAX_REDIRECTS, timeout=15.0) as client:
+                    async with client.stream("GET", url, headers={"User-Agent": USER_AGENT}) as r:
+                        from nanobot.security.network import validate_resolved_url
 
-                    redir_ok, redir_err = validate_resolved_url(str(r.url))
-                    if not redir_ok:
-                        return json.dumps({"error": f"Redirect blocked: {redir_err}", "url": url}, ensure_ascii=False)
+                        redir_ok, redir_err = validate_resolved_url(str(r.url))
+                        if not redir_ok:
+                            return json.dumps({"error": f"Redirect blocked: {redir_err}", "url": url}, ensure_ascii=False)
 
-                    ctype = r.headers.get("content-type", "")
-                    if ctype.startswith("image/"):
-                        r.raise_for_status()
-                        raw = await r.aread()
-                        return build_image_content_blocks(raw, ctype, url, f"(Image fetched from: {url})")
-        except Exception as e:
-            logger.debug("Pre-fetch image detection failed for {}: {}", url, e)
+                        ctype = r.headers.get("content-type", "")
+                        if ctype.startswith("image/"):
+                            r.raise_for_status()
+                            raw = await r.aread()
+                            return build_image_content_blocks(raw, ctype, url, f"(Image fetched from: {url})")
+            except Exception as e:
+                logger.debug("Pre-fetch image detection failed for {}: {}", url, e)
 
-        result = await self._fetch_jina(url, max_chars)
-        if result is None:
-            result = await self._fetch_readability(url, extractMode, max_chars)
-        return result
+            result = await self._fetch_jina(url, max_chars)
+            if result is None:
+                result = await self._fetch_readability(url, extractMode, max_chars)
+            resp_len = len(result) if isinstance(result, str) else len(str(result))
+            record_metric("nanobot_web_fetch_bytes", float(resp_len))
+            return result
 
     async def _fetch_jina(self, url: str, max_chars: int) -> str | None:
         """Try fetching via Jina Reader API. Returns None on failure."""

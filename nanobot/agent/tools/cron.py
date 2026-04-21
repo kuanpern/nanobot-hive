@@ -4,6 +4,7 @@ from contextvars import ContextVar
 from datetime import datetime
 from typing import Any
 
+from nanobot.telemetry import trace
 from nanobot.agent.tools.base import Tool, tool_parameters
 from nanobot.agent.tools.schema import (
     BooleanSchema,
@@ -129,15 +130,16 @@ class CronTool(Tool):
         deliver: bool = True,
         **kwargs: Any,
     ) -> str:
-        if action == "add":
-            if self._in_cron_context.get():
-                return "Error: cannot schedule new jobs from within a cron job execution"
-            return self._add_job(name, message, every_seconds, cron_expr, tz, at, deliver)
-        elif action == "list":
-            return self._list_jobs()
-        elif action == "remove":
-            return self._remove_job(job_id)
-        return f"Unknown action: {action}"
+        async with trace(f"cron.{action}"):
+            if action == "add":
+                if self._in_cron_context.get():
+                    return "Error: cannot schedule new jobs from within a cron job execution"
+                return self._add_job(name, message, every_seconds, cron_expr, tz, at, deliver)
+            elif action == "list":
+                return self._list_jobs()
+            elif action == "remove":
+                return self._remove_job(job_id)
+            return f"Unknown action: {action}"
 
     def _add_job(
         self,

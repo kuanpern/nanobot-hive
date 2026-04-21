@@ -9,6 +9,8 @@ from typing import TYPE_CHECKING, Any, Callable, Coroutine
 import structlog
 logger = structlog.get_logger()
 
+from nanobot.telemetry import record_metric, trace
+
 if TYPE_CHECKING:
     from nanobot.optional.llm.base import LLMProvider
 
@@ -159,28 +161,32 @@ class HeartbeatService:
 
         logger.info("Heartbeat: checking for tasks...")
 
-        try:
-            action, tasks = await self._decide(content)
+        async with trace("heartbeat.tick"):
+            try:
+                action, tasks = await self._decide(content)
 
-            if action != "run":
-                logger.info("Heartbeat: OK (nothing to report)")
-                return
+                if action != "run":
+                    logger.info("Heartbeat: OK (nothing to report)")
+                    record_metric("nanobot_heartbeat_ticks_total", labels={"outcome": "skip"})
+                    return
 
-            logger.info("Heartbeat: tasks found, executing...")
-            if self.on_execute:
-                response = await self.on_execute(tasks)
+                logger.info("Heartbeat: tasks found, executing...")
+                record_metric("nanobot_heartbeat_ticks_total", labels={"outcome": "run"})
+                if self.on_execute:
+                    response = await self.on_execute(tasks)
 
-                if response:
-                    should_notify = await evaluate_response(
-                        response, tasks, self.provider, self.model,
-                    )
-                    if should_notify and self.on_notify:
-                        logger.info("Heartbeat: completed, delivering response")
-                        await self.on_notify(response)
-                    else:
-                        logger.info("Heartbeat: silenced by post-run evaluation")
-        except Exception:
-            logger.exception("Heartbeat execution failed")
+                    if response:
+                        should_notify = await evaluate_response(
+                            response, tasks, self.provider, self.model,
+                        )
+                        if should_notify and self.on_notify:
+                            logger.info("Heartbeat: completed, delivering response")
+                            await self.on_notify(response)
+                        else:
+                            logger.info("Heartbeat: silenced by post-run evaluation")
+            except Exception:
+                logger.exception("Heartbeat execution failed")
+                record_metric("nanobot_heartbeat_ticks_total", labels={"outcome": "error"})
 
     async def trigger_now(self) -> str | None:
         """Manually trigger a heartbeat."""

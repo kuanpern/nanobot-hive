@@ -223,6 +223,15 @@ class ToolsConfig(Base):
     ssrf_whitelist: list[str] = Field(default_factory=list)  # CIDR ranges to exempt from SSRF blocking (e.g. ["100.64.0.0/10"] for Tailscale)
 
 
+class TelemetryConfig(Base):
+    """Observability configuration (OpenTelemetry + Prometheus)."""
+
+    enabled: bool = False
+    otel_exporter: str | None = None
+    otel_endpoint: str = "http://localhost:4317"
+    metrics_port: int = 8000
+
+
 class Config(BaseSettings):
     """Root configuration for nanobot."""
 
@@ -232,6 +241,7 @@ class Config(BaseSettings):
     api: ApiConfig = Field(default_factory=ApiConfig)
     gateway: GatewayConfig = Field(default_factory=GatewayConfig)
     tools: ToolsConfig = Field(default_factory=ToolsConfig)
+    telemetry: TelemetryConfig = Field(default_factory=TelemetryConfig)
 
     @property
     def workspace_path(self) -> Path:
