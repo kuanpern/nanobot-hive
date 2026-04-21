@@ -134,21 +134,21 @@ def _make_provider(config: Any) -> Any:
             raise ValueError(f"No API key configured for provider '{provider_name}'.")
 
     if backend == "openai_codex":
-        from nanobot_hive.optional.llm.openai_codex import OpenAICodexProvider
+        from nanobot_hive.optional.llm.openai_codex_provider import OpenAICodexProvider
 
         provider = OpenAICodexProvider(default_model=model)
     elif backend == "github_copilot":
-        from nanobot_hive.optional.llm.github_copilot import GitHubCopilotProvider
+        from nanobot_hive.optional.llm.github_copilot_provider import GitHubCopilotProvider
 
         provider = GitHubCopilotProvider(default_model=model)
     elif backend == "azure_openai":
-        from nanobot_hive.optional.llm.azure_openai import AzureOpenAIProvider
+        from nanobot_hive.optional.llm.azure_openai_provider import AzureOpenAIProvider
 
         provider = AzureOpenAIProvider(
             api_key=p.api_key, api_base=p.api_base, default_model=model
         )
     elif backend == "anthropic":
-        from nanobot_hive.optional.llm.anthropic import AnthropicProvider
+        from nanobot_hive.optional.llm.anthropic_provider import AnthropicProvider
 
         provider = AnthropicProvider(
             api_key=p.api_key if p else None,
@@ -157,7 +157,7 @@ def _make_provider(config: Any) -> Any:
             extra_headers=p.extra_headers if p else None,
         )
     else:
-        from nanobot_hive.optional.llm.openai import OpenAICompatProvider
+        from nanobot_hive.optional.llm.openai_compat_provider import OpenAICompatProvider
 
         provider = OpenAICompatProvider(
             api_key=p.api_key if p else None,
