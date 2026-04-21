@@ -5,7 +5,8 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Callable, Coroutine, Literal
 
-from loguru import logger
+import structlog
+logger = structlog.get_logger()
 
 from nanobot.optional.scheduler.service import CronService
 from nanobot.optional.scheduler.types import CronJob, CronSchedule

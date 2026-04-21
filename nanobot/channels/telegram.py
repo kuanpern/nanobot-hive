@@ -9,7 +9,7 @@ import unicodedata
 from dataclasses import dataclass
 from typing import Any, Literal
 
-from loguru import logger
+import structlog
 from pydantic import Field
 from telegram import BotCommand, ReactionTypeEmoji, ReplyParameters, Update
 from telegram.error import BadRequest, NetworkError, TimedOut
@@ -24,6 +24,8 @@ from nanobot.config.paths import get_media_dir
 from nanobot.config.schema import Base
 from nanobot.security.network import validate_url_target
 from nanobot.utils.helpers import split_message
+
+logger = structlog.get_logger()
 
 TELEGRAM_MAX_MESSAGE_LEN = 4000  # Telegram message character limit
 # Telegram's actual API limit is 4096; we split raw markdown at 4000 as a

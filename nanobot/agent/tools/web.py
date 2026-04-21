@@ -11,7 +11,8 @@ from typing import TYPE_CHECKING, Any
 from urllib.parse import quote, urlparse
 
 import httpx
-from loguru import logger
+import structlog
+logger = structlog.get_logger()
 
 from nanobot.core.tools.base import Tool, tool_parameters
 from nanobot.core.tools.schema import IntegerSchema, StringSchema, tool_parameters_schema

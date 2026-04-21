@@ -6,7 +6,8 @@ import asyncio
 from pathlib import Path
 from typing import TYPE_CHECKING, Any, Callable, Coroutine
 
-from loguru import logger
+import structlog
+logger = structlog.get_logger()
 
 if TYPE_CHECKING:
     from nanobot.optional.llm.base import LLMProvider

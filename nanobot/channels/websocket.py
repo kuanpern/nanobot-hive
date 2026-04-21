@@ -17,7 +17,7 @@ from pathlib import Path
 from typing import TYPE_CHECKING, Any, Self
 from urllib.parse import parse_qs, unquote, urlparse
 
-from loguru import logger
+import structlog
 from pydantic import Field, field_validator, model_validator
 from websockets.asyncio.server import ServerConnection, serve
 from websockets.datastructures import Headers
@@ -29,6 +29,8 @@ from nanobot.bus.events import OutboundMessage
 from nanobot.bus.queue import MessageBus
 from nanobot.channels.base import BaseChannel
 from nanobot.config.schema import Base
+
+logger = structlog.get_logger()
 
 if TYPE_CHECKING:
     from nanobot.session.manager import SessionManager

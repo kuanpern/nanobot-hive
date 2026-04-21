@@ -23,7 +23,7 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from typing import TYPE_CHECKING, Any
 
 import httpx
-from loguru import logger
+import structlog
 from pydantic import Field
 
 from nanobot.bus.events import OutboundMessage
@@ -36,6 +36,8 @@ MSTEAMS_AVAILABLE = (
     importlib.util.find_spec("jwt") is not None
     and importlib.util.find_spec("cryptography") is not None
 )
+
+logger = structlog.get_logger()
 
 if TYPE_CHECKING:
     import jwt

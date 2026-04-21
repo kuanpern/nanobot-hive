@@ -10,7 +10,8 @@ from datetime import datetime, timezone
 from email.utils import parsedate_to_datetime
 from typing import Any
 
-from loguru import logger
+import structlog
+logger = structlog.get_logger()
 
 from nanobot.utils.helpers import image_placeholder_text
 

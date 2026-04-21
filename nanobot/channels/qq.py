@@ -30,7 +30,7 @@ from typing import TYPE_CHECKING, Any, Literal
 from urllib.parse import unquote, urlparse
 
 import aiohttp
-from loguru import logger
+import structlog
 from pydantic import Field
 
 from nanobot.core.events import OutboundMessage
@@ -38,6 +38,8 @@ from nanobot.optional.bus.asyncio_queue import MessageBus
 from nanobot.channels.base import BaseChannel
 from nanobot.config.schema import Base
 from nanobot.security.network import validate_url_target
+
+logger = structlog.get_logger()
 
 try:
     from nanobot.config.paths import get_media_dir
@@ -108,7 +110,7 @@ def _make_bot_class(channel: QQChannel) -> type[botpy.Client]:
 
     class _Bot(botpy.Client):
         def __init__(self):
-            # Disable botpy's file log — nanobot uses loguru; default "botpy.log" fails on read-only fs
+            # Disable botpy's file log — nanobot uses structlog; default "botpy.log" fails on read-only fs
             super().__init__(intents=intents, ext_handlers=False)
 
         async def on_ready(self):

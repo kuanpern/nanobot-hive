@@ -11,7 +11,7 @@ from collections import OrderedDict
 from pathlib import Path
 from typing import Any, Literal
 
-from loguru import logger
+import structlog
 from pydantic import Field
 
 from nanobot.core.events import OutboundMessage
@@ -19,6 +19,7 @@ from nanobot.optional.bus.asyncio_queue import MessageBus
 from nanobot.channels.base import BaseChannel
 from nanobot.config.schema import Base
 
+logger = structlog.get_logger()
 
 class WhatsAppConfig(Base):
     """WhatsApp channel configuration."""

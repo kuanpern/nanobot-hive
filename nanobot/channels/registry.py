@@ -6,7 +6,8 @@ import importlib
 import pkgutil
 from typing import TYPE_CHECKING
 
-from loguru import logger
+import structlog
+logger = structlog.get_logger()
 
 if TYPE_CHECKING:
     from nanobot.channels.base import BaseChannel

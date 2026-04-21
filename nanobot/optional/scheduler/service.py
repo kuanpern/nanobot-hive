@@ -10,7 +10,8 @@ from pathlib import Path
 from typing import Any, Callable, Coroutine, Literal
 
 from filelock import FileLock
-from loguru import logger
+import structlog
+logger = structlog.get_logger()
 
 from nanobot.optional.scheduler.types import CronJob, CronJobState, CronPayload, CronRunRecord, CronSchedule, CronStore
 

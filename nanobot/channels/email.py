@@ -16,7 +16,7 @@ from fnmatch import fnmatch
 from pathlib import Path
 from typing import Any
 
-from loguru import logger
+import structlog
 from pydantic import Field
 
 from nanobot.core.events import OutboundMessage
@@ -26,6 +26,7 @@ from nanobot.config.paths import get_media_dir
 from nanobot.config.schema import Base
 from nanobot.utils.helpers import safe_filename
 
+logger = structlog.get_logger()
 
 class EmailConfig(Base):
     """Email channel configuration (IMAP inbound + SMTP outbound)."""

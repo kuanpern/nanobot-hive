@@ -3,7 +3,8 @@
 import mimetypes
 from pathlib import Path
 
-from loguru import logger
+import structlog
+logger = structlog.get_logger()
 
 from nanobot.utils.helpers import detect_image_mime
 

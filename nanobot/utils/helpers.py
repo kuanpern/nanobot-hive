@@ -11,7 +11,8 @@ from pathlib import Path
 from typing import Any
 
 import tiktoken
-from loguru import logger
+import structlog
+logger = structlog.get_logger()
 
 
 def strip_think(text: str) -> str:

@@ -11,7 +11,8 @@ from contextlib import AsyncExitStack, nullcontext
 from pathlib import Path
 from typing import TYPE_CHECKING, Any, Awaitable, Callable
 
-from loguru import logger
+import structlog
+logger = structlog.get_logger()
 
 from nanobot.agent.autocompact import AutoCompact
 from nanobot.agent.context import ContextBuilder

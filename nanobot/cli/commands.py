@@ -20,8 +20,8 @@ if sys.platform == "win32":
         except Exception:
             pass
 
+import structlog
 import typer
-from loguru import logger
 from prompt_toolkit import PromptSession, print_formatted_text
 from prompt_toolkit.application import run_in_terminal
 from prompt_toolkit.formatted_text import ANSI, HTML
@@ -50,11 +50,14 @@ from nanobot.cli.stream import StreamRenderer, ThinkingSpinner
 from nanobot.config.paths import get_workspace_path, is_default_workspace
 from nanobot.config.schema import Config
 from nanobot.utils.helpers import sync_workspace_templates
+from nanobot.utils.logging_setup import configure_logging
 from nanobot.utils.restart import (
     consume_restart_notice_from_env,
     format_restart_completed_message,
     should_show_cli_restart_notice,
 )
+
+logger = structlog.get_logger()
 
 app = typer.Typer(
     name="nanobot",
@@ -553,16 +556,12 @@ def serve(
         console.print("[red]aiohttp is required. Install with: pip install 'nanobot-ai[api]'[/red]")
         raise typer.Exit(1)
 
-    from loguru import logger
     from nanobot.agent.loop import AgentLoop
     from nanobot.api.server import create_app
     from nanobot.optional.bus import get_bus
     from nanobot.session.manager import SessionManager
 
-    if verbose:
-        logger.enable("nanobot")
-    else:
-        logger.disable("nanobot")
+    configure_logging(verbose=verbose)
 
     runtime_config = _load_runtime_config(config, workspace)
     api_cfg = runtime_config.api
@@ -1027,8 +1026,6 @@ def agent(
     logs: bool = typer.Option(False, "--logs/--no-logs", help="Show nanobot runtime logs during chat"),
 ):
     """Interact with the agent directly."""
-    from loguru import logger
-
     from nanobot.agent.loop import AgentLoop
     from nanobot.optional.bus import get_bus
     from nanobot.optional.scheduler.service import CronService
@@ -1047,10 +1044,7 @@ def agent(
     cron_store_path = config.workspace_path / "cron" / "jobs.json"
     cron = CronService(cron_store_path)
 
-    if logs:
-        logger.enable("nanobot")
-    else:
-        logger.disable("nanobot")
+    configure_logging(verbose=logs)
 
     agent_loop = AgentLoop(
         bus=bus,

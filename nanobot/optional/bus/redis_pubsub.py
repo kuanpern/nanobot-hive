@@ -9,7 +9,8 @@ import os
 from datetime import datetime
 from typing import Any
 
-from loguru import logger
+import structlog
+logger = structlog.get_logger()
 
 try:
     import redis.asyncio as aioredis

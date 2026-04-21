@@ -24,7 +24,7 @@ from typing import Any
 from urllib.parse import quote
 
 import httpx
-from loguru import logger
+import structlog
 from pydantic import Field
 
 from nanobot.core.events import OutboundMessage
@@ -33,6 +33,8 @@ from nanobot.channels.base import BaseChannel
 from nanobot.config.paths import get_media_dir, get_runtime_subdir
 from nanobot.config.schema import Base
 from nanobot.utils.helpers import split_message
+
+logger = structlog.get_logger()
 
 # ---------------------------------------------------------------------------
 # Protocol constants (from openclaw-weixin types.ts)

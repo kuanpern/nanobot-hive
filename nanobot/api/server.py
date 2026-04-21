@@ -17,7 +17,8 @@ from pathlib import Path
 from typing import Any
 
 from aiohttp import web
-from loguru import logger
+import structlog
+logger = structlog.get_logger()
 
 from nanobot.config.paths import get_media_dir
 from nanobot.utils.helpers import safe_filename

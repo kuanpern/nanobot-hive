@@ -9,7 +9,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import TYPE_CHECKING, Any, Literal
 
-from loguru import logger
+import structlog
 from pydantic import Field
 
 from nanobot.core.events import OutboundMessage
@@ -19,6 +19,8 @@ from nanobot.command.builtin import build_help_text
 from nanobot.config.paths import get_media_dir
 from nanobot.config.schema import Base
 from nanobot.utils.helpers import safe_filename, split_message
+
+logger = structlog.get_logger()
 
 DISCORD_AVAILABLE = importlib.util.find_spec("discord") is not None
 if TYPE_CHECKING:

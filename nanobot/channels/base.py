@@ -6,7 +6,8 @@ from abc import ABC, abstractmethod
 from pathlib import Path
 from typing import Any
 
-from loguru import logger
+import structlog
+logger = structlog.get_logger()
 
 from nanobot.core.events import InboundMessage, OutboundMessage
 from nanobot.optional.bus.asyncio_queue import MessageBus

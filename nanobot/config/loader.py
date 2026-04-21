@@ -6,7 +6,8 @@ import re
 from pathlib import Path
 
 import pydantic
-from loguru import logger
+import structlog
+logger = structlog.get_logger()
 
 from nanobot.config.schema import Config
 

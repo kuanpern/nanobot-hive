@@ -8,7 +8,8 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
 
-from loguru import logger
+import structlog
+logger = structlog.get_logger()
 
 from nanobot.core.hook import AgentHook, AgentHookContext
 from nanobot.utils.prompt_templates import render_template

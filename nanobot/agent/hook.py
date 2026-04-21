@@ -5,7 +5,8 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from typing import Any
 
-from loguru import logger
+import structlog
+logger = structlog.get_logger()
 
 from nanobot.optional.llm.base import LLMResponse, ToolCallRequest
 

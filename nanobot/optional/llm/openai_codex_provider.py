@@ -13,7 +13,7 @@ from collections.abc import Awaitable, Callable
 from typing import Any
 
 import httpx
-from loguru import logger
+import structlog
 from oauth_cli_kit import get_token as get_codex_token
 
 from nanobot.optional.llm.base import LLMProvider, LLMResponse, ToolCallRequest
@@ -22,6 +22,8 @@ from nanobot.optional.llm.openai_responses import (
     convert_messages,
     convert_tools,
 )
+
+logger = structlog.get_logger()
 
 DEFAULT_CODEX_URL = "https://chatgpt.com/backend-api/codex/responses"
 DEFAULT_ORIGINATOR = "nanobot"

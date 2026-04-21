@@ -4,7 +4,8 @@ from __future__ import annotations
 
 from typing import Any
 
-from loguru import logger
+import structlog
+logger = structlog.get_logger()
 
 from nanobot.utils.helpers import stringify_text_blocks
 

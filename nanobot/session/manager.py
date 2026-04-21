@@ -8,7 +8,8 @@ from datetime import datetime
 from pathlib import Path
 from typing import Any
 
-from loguru import logger
+import structlog
+logger = structlog.get_logger()
 
 from nanobot.config.paths import get_legacy_sessions_dir
 from nanobot.utils.helpers import ensure_dir, find_legal_message_start, safe_filename

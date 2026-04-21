@@ -10,7 +10,8 @@ from datetime import datetime
 from typing import Any
 
 import httpx
-from loguru import logger
+import structlog
+logger = structlog.get_logger()
 
 from nanobot.core.events import OutboundMessage
 from nanobot.optional.bus.asyncio_queue import MessageBus

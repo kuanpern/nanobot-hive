@@ -5,7 +5,8 @@ from contextlib import AsyncExitStack
 from typing import Any
 
 import httpx
-from loguru import logger
+import structlog
+logger = structlog.get_logger()
 
 from nanobot.core.tools.base import Tool
 from nanobot.core.tools.registry import ToolRegistry

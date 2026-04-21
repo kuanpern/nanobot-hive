@@ -4,7 +4,8 @@ import os
 from pathlib import Path
 
 import httpx
-from loguru import logger
+import structlog
+logger = structlog.get_logger()
 
 
 class OpenAITranscriptionProvider:

@@ -6,8 +6,10 @@ from collections.abc import Collection
 from datetime import datetime
 from typing import TYPE_CHECKING, Any, Callable, Coroutine
 
-from loguru import logger
+import structlog
 from nanobot.session.manager import Session, SessionManager
+
+logger = structlog.get_logger()
 
 if TYPE_CHECKING:
     from nanobot.agent.memory import Consolidator

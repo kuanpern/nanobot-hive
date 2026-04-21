@@ -8,7 +8,8 @@ import sys
 from pathlib import Path
 from typing import Any
 
-from loguru import logger
+import structlog
+logger = structlog.get_logger()
 
 from nanobot.core.tools.base import Tool, tool_parameters
 from nanobot.core.tools.sandbox import wrap_command

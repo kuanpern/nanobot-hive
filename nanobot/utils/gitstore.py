@@ -8,7 +8,8 @@ from dataclasses import dataclass
 from datetime import datetime, timezone
 from pathlib import Path
 
-from loguru import logger
+import structlog
+logger = structlog.get_logger()
 
 
 @dataclass

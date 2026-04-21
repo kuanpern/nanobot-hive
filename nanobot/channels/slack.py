@@ -4,7 +4,7 @@ import asyncio
 import re
 from typing import Any
 
-from loguru import logger
+import structlog
 from pydantic import Field
 from slack_sdk.socket_mode.request import SocketModeRequest
 from slack_sdk.socket_mode.response import SocketModeResponse
@@ -17,6 +17,7 @@ from nanobot.bus.queue import MessageBus
 from nanobot.channels.base import BaseChannel
 from nanobot.config.schema import Base
 
+logger = structlog.get_logger()
 
 class SlackDMConfig(Base):
     """Slack DM policy configuration."""

@@ -8,7 +8,8 @@ from typing import Any, AsyncGenerator
 
 import httpx
 import json_repair
-from loguru import logger
+import structlog
+logger = structlog.get_logger()
 
 from nanobot.optional.llm.base import LLMResponse, ToolCallRequest
 

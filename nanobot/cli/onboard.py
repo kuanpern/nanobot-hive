@@ -10,7 +10,7 @@ try:
     import questionary
 except ModuleNotFoundError:  # pragma: no cover - exercised in environments without wizard deps
     questionary = None
-from loguru import logger
+import structlog
 from pydantic import BaseModel
 from rich.console import Console
 from rich.panel import Panel
@@ -23,6 +23,8 @@ from nanobot.cli.models import (
 )
 from nanobot.config.loader import get_config_path, load_config
 from nanobot.config.schema import Config
+
+logger = structlog.get_logger()
 
 console = Console()
 

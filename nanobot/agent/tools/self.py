@@ -5,7 +5,8 @@ from __future__ import annotations
 import time
 from typing import TYPE_CHECKING, Any
 
-from loguru import logger
+import structlog
+logger = structlog.get_logger()
 
 from nanobot.agent.subagent import SubagentStatus
 from nanobot.agent.tools.base import Tool

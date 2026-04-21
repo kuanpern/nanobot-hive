@@ -9,8 +9,10 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Literal, TypeAlias
 
-from loguru import logger
+import structlog
 from pydantic import Field
+
+logger = structlog.get_logger()
 
 try:
     import nh3
@@ -177,25 +179,24 @@ def _build_matrix_text_content(
     return content
 
 
-class _NioLoguruHandler(logging.Handler):
-    """Route matrix-nio stdlib logs into Loguru."""
+class _NioStructlogHandler(logging.Handler):
+    """Route matrix-nio stdlib logs into structlog."""
 
     def emit(self, record: logging.LogRecord) -> None:
         try:
-            level = logger.level(record.levelname).name
-        except ValueError:
-            level = record.levelno
-        frame, depth = logging.currentframe(), 2
-        while frame and frame.f_code.co_filename == logging.__file__:
-            frame, depth = frame.f_back, depth + 1
-        logger.opt(depth=depth, exception=record.exc_info).log(level, record.getMessage())
+            log = structlog.get_logger("nio")
+            level = record.levelname.lower()
+            method = getattr(log, level, log.warning)
+            method(record.getMessage(), exc_info=record.exc_info or False)
+        except Exception:
+            self.handleError(record)
 
 
 def _configure_nio_logging_bridge() -> None:
-    """Bridge matrix-nio logs to Loguru (idempotent)."""
+    """Bridge matrix-nio logs into structlog (idempotent)."""
     nio_logger = logging.getLogger("nio")
-    if not any(isinstance(h, _NioLoguruHandler) for h in nio_logger.handlers):
-        nio_logger.handlers = [_NioLoguruHandler()]
+    if not any(isinstance(h, _NioStructlogHandler) for h in nio_logger.handlers):
+        nio_logger.handlers = [_NioStructlogHandler()]
         nio_logger.propagate = False
 
 

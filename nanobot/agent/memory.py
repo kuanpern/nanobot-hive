@@ -10,7 +10,8 @@ from datetime import datetime
 from pathlib import Path
 from typing import TYPE_CHECKING, Any, Callable, Iterator
 
-from loguru import logger
+import structlog
+logger = structlog.get_logger()
 
 from nanobot.utils.prompt_templates import render_template
 from nanobot.utils.helpers import ensure_dir, estimate_message_tokens, estimate_prompt_tokens_chain, strip_think
