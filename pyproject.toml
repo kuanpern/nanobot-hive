@@ -66,6 +66,9 @@ dependencies = [
 ]
 
 [project.optional-dependencies]
+redis = [
+    "redis>=4.6.0",
+]
 api = [
     "aiohttp>=3.9.0,<4.0.0",
 ]
