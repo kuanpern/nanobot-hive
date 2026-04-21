@@ -7,7 +7,7 @@ from pydantic import AliasChoices, BaseModel, ConfigDict, Field
 from pydantic.alias_generators import to_camel
 from pydantic_settings import BaseSettings
 
-from nanobot_hive.cron.types import CronSchedule
+from nanobot_hive.optional.scheduler.types import CronSchedule
 
 
 class Base(BaseModel):
@@ -218,7 +218,7 @@ class Config(BaseSettings):
         self, model: str | None = None
     ) -> tuple["ProviderConfig | None", str | None]:
         """Match provider config and its registry name. Returns (config, spec_name)."""
-        from nanobot_hive.providers.registry import PROVIDERS, find_by_name
+        from nanobot_hive.optional.llm.registry import PROVIDERS, find_by_name
 
         forced = self.agents.defaults.provider
         if forced != "auto":
@@ -296,7 +296,7 @@ class Config(BaseSettings):
 
     def get_api_base(self, model: str | None = None) -> str | None:
         """Get API base URL for the given model. Applies default URLs for gateway/local providers."""
-        from nanobot_hive.providers.registry import find_by_name
+        from nanobot_hive.optional.llm.registry import find_by_name
 
         p, name = self._match_provider(model)
         if p and p.api_base:

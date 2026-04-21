@@ -33,8 +33,8 @@ import aiohttp
 from loguru import logger
 from pydantic import Field
 
-from nanobot_hive.bus.events import OutboundMessage
-from nanobot_hive.bus.queue import MessageBus
+from nanobot_hive.core.events import OutboundMessage
+from nanobot_hive.optional.bus.asyncio_queue import MessageBus
 from nanobot_hive.channels.base import BaseChannel
 from nanobot_hive.config.schema import Base
 from nanobot_hive.security.network import validate_url_target

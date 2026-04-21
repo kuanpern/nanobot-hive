@@ -8,8 +8,8 @@ from typing import Any
 
 from loguru import logger
 
-from nanobot_hive.bus.events import InboundMessage, OutboundMessage
-from nanobot_hive.bus.queue import MessageBus
+from nanobot_hive.core.events import InboundMessage, OutboundMessage
+from nanobot_hive.optional.bus.asyncio_queue import MessageBus
 
 
 class BaseChannel(ABC):
@@ -43,10 +43,10 @@ class BaseChannel(ABC):
             return ""
         try:
             if self.transcription_provider == "openai":
-                from nanobot_hive.providers.transcription import OpenAITranscriptionProvider
+                from nanobot_hive.optional.llm.transcription import OpenAITranscriptionProvider
                 provider = OpenAITranscriptionProvider(api_key=self.transcription_api_key)
             else:
-                from nanobot_hive.providers.transcription import GroqTranscriptionProvider
+                from nanobot_hive.optional.llm.transcription import GroqTranscriptionProvider
                 provider = GroqTranscriptionProvider(api_key=self.transcription_api_key)
             return await provider.transcribe(file_path)
         except Exception as e:

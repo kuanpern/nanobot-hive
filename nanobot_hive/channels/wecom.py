@@ -8,8 +8,8 @@ from typing import Any
 
 from loguru import logger
 
-from nanobot_hive.bus.events import OutboundMessage
-from nanobot_hive.bus.queue import MessageBus
+from nanobot_hive.core.events import OutboundMessage
+from nanobot_hive.optional.bus.asyncio_queue import MessageBus
 from nanobot_hive.channels.base import BaseChannel
 from nanobot_hive.config.paths import get_media_dir
 from nanobot_hive.config.schema import Base

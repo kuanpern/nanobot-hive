@@ -10,8 +10,8 @@ from typing import TYPE_CHECKING, Any, Literal
 from loguru import logger
 from pydantic import Field
 
-from nanobot_hive.bus.events import OutboundMessage
-from nanobot_hive.bus.queue import MessageBus
+from nanobot_hive.core.events import OutboundMessage
+from nanobot_hive.optional.bus.asyncio_queue import MessageBus
 from nanobot_hive.channels.base import BaseChannel
 from nanobot_hive.command.builtin import build_help_text
 from nanobot_hive.config.paths import get_media_dir

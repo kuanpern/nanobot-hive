@@ -654,7 +654,7 @@ def _try_auto_fill_context_window(model: BaseModel, new_model_name: str) -> None
 @lru_cache(maxsize=1)
 def _get_provider_info() -> dict[str, tuple[str, bool, bool, str]]:
     """Get provider info from registry (cached)."""
-    from nanobot_hive.providers.registry import PROVIDERS
+    from nanobot_hive.optional.llm.registry import PROVIDERS
 
     return {
         spec.name: (

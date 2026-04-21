@@ -6,9 +6,9 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
-from nanobot_hive.agent.hook import AgentHook
-from nanobot_hive.agent.loop import AgentLoop
-from nanobot_hive.bus.queue import MessageBus
+from nanobot_hive.core.hook import AgentHook
+from nanobot_hive.core.loop import AgentLoop
+from nanobot_hive.optional.bus.asyncio_queue import MessageBus
 
 
 @dataclass(slots=True)
@@ -115,8 +115,8 @@ class Nanobot:
 
 def _make_provider(config: Any) -> Any:
     """Create the LLM provider from config (extracted from CLI)."""
-    from nanobot_hive.providers.base import GenerationSettings
-    from nanobot_hive.providers.registry import find_by_name
+    from nanobot_hive.optional.llm.base import GenerationSettings
+    from nanobot_hive.optional.llm.registry import find_by_name
 
     model = config.agents.defaults.model
     provider_name = config.get_provider_name(model)
@@ -134,21 +134,21 @@ def _make_provider(config: Any) -> Any:
             raise ValueError(f"No API key configured for provider '{provider_name}'.")
 
     if backend == "openai_codex":
-        from nanobot_hive.providers.openai_codex_provider import OpenAICodexProvider
+        from nanobot_hive.optional.llm.openai_codex import OpenAICodexProvider
 
         provider = OpenAICodexProvider(default_model=model)
     elif backend == "github_copilot":
-        from nanobot_hive.providers.github_copilot_provider import GitHubCopilotProvider
+        from nanobot_hive.optional.llm.github_copilot import GitHubCopilotProvider
 
         provider = GitHubCopilotProvider(default_model=model)
     elif backend == "azure_openai":
-        from nanobot_hive.providers.azure_openai_provider import AzureOpenAIProvider
+        from nanobot_hive.optional.llm.azure_openai import AzureOpenAIProvider
 
         provider = AzureOpenAIProvider(
             api_key=p.api_key, api_base=p.api_base, default_model=model
         )
     elif backend == "anthropic":
-        from nanobot_hive.providers.anthropic_provider import AnthropicProvider
+        from nanobot_hive.optional.llm.anthropic import AnthropicProvider
 
         provider = AnthropicProvider(
             api_key=p.api_key if p else None,
@@ -157,7 +157,7 @@ def _make_provider(config: Any) -> Any:
             extra_headers=p.extra_headers if p else None,
         )
     else:
-        from nanobot_hive.providers.openai_compat_provider import OpenAICompatProvider
+        from nanobot_hive.optional.llm.openai import OpenAICompatProvider
 
         provider = OpenAICompatProvider(
             api_key=p.api_key if p else None,

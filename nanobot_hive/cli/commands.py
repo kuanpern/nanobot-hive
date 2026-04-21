@@ -408,8 +408,8 @@ def _make_provider(config: Config):
 
     Routing is driven by ``ProviderSpec.backend`` in the registry.
     """
-    from nanobot_hive.providers.base import GenerationSettings
-    from nanobot_hive.providers.registry import find_by_name
+    from nanobot_hive.optional.llm.base import GenerationSettings
+    from nanobot_hive.optional.llm.registry import find_by_name
 
     model = config.agents.defaults.model
     provider_name = config.get_provider_name(model)
@@ -434,11 +434,11 @@ def _make_provider(config: Config):
 
     # --- instantiation by backend ---
     if backend == "openai_codex":
-        from nanobot_hive.providers.openai_codex_provider import OpenAICodexProvider
+        from nanobot_hive.optional.llm.openai_codex import OpenAICodexProvider
 
         provider = OpenAICodexProvider(default_model=model)
     elif backend == "azure_openai":
-        from nanobot_hive.providers.azure_openai_provider import AzureOpenAIProvider
+        from nanobot_hive.optional.llm.azure_openai import AzureOpenAIProvider
 
         provider = AzureOpenAIProvider(
             api_key=p.api_key,
@@ -446,10 +446,10 @@ def _make_provider(config: Config):
             default_model=model,
         )
     elif backend == "github_copilot":
-        from nanobot_hive.providers.github_copilot_provider import GitHubCopilotProvider
+        from nanobot_hive.optional.llm.github_copilot import GitHubCopilotProvider
         provider = GitHubCopilotProvider(default_model=model)
     elif backend == "anthropic":
-        from nanobot_hive.providers.anthropic_provider import AnthropicProvider
+        from nanobot_hive.optional.llm.anthropic import AnthropicProvider
 
         provider = AnthropicProvider(
             api_key=p.api_key if p else None,
@@ -458,7 +458,7 @@ def _make_provider(config: Config):
             extra_headers=p.extra_headers if p else None,
         )
     else:
-        from nanobot_hive.providers.openai_compat_provider import OpenAICompatProvider
+        from nanobot_hive.optional.llm.openai import OpenAICompatProvider
 
         provider = OpenAICompatProvider(
             api_key=p.api_key if p else None,
@@ -554,9 +554,9 @@ def serve(
         raise typer.Exit(1)
 
     from loguru import logger
-    from nanobot_hive.agent.loop import AgentLoop
+    from nanobot_hive.core.loop import AgentLoop
     from nanobot_hive.api.server import create_app
-    from nanobot_hive.bus.queue import MessageBus
+    from nanobot_hive.optional.bus.asyncio_queue import MessageBus
     from nanobot_hive.session.manager import SessionManager
 
     if verbose:
@@ -632,11 +632,11 @@ def gateway(
     config: str | None = typer.Option(None, "--config", "-c", help="Path to config file"),
 ):
     """Start the nanobot gateway."""
-    from nanobot_hive.agent.loop import AgentLoop
-    from nanobot_hive.bus.queue import MessageBus
+    from nanobot_hive.core.loop import AgentLoop
+    from nanobot_hive.optional.bus.asyncio_queue import MessageBus
     from nanobot_hive.channels.manager import ChannelManager
-    from nanobot_hive.cron.service import CronService
-    from nanobot_hive.cron.types import CronJob
+    from nanobot_hive.optional.scheduler.service import CronService
+    from nanobot_hive.optional.scheduler.types import CronJob
     from nanobot_hive.heartbeat.service import HeartbeatService
     from nanobot_hive.session.manager import SessionManager
 
@@ -695,8 +695,8 @@ def gateway(
                 logger.exception("Dream cron job failed")
             return None
 
-        from nanobot_hive.agent.tools.cron import CronTool
-        from nanobot_hive.agent.tools.message import MessageTool
+        from nanobot_hive.core.tools.cron import CronTool
+        from nanobot_hive.core.tools.message import MessageTool
         from nanobot_hive.utils.evaluator import evaluate_response
 
         reminder_note = (
@@ -731,7 +731,7 @@ def gateway(
                 response, reminder_note, provider, agent.model,
             )
             if should_notify:
-                from nanobot_hive.bus.events import OutboundMessage
+                from nanobot_hive.core.events import OutboundMessage
                 await bus.publish_outbound(OutboundMessage(
                     channel=job.payload.channel or "cli",
                     chat_id=job.payload.to,
@@ -786,7 +786,7 @@ def gateway(
 
     async def on_heartbeat_notify(response: str) -> None:
         """Deliver a heartbeat response to the user's channel."""
-        from nanobot_hive.bus.events import OutboundMessage
+        from nanobot_hive.core.events import OutboundMessage
         channel, chat_id = _pick_heartbeat_target()
         if channel == "cli":
             return  # No external channel available to deliver to
@@ -821,7 +821,7 @@ def gateway(
         agent.dream.model = dream_cfg.model_override
     agent.dream.max_batch_size = dream_cfg.max_batch_size
     agent.dream.max_iterations = dream_cfg.max_iterations
-    from nanobot_hive.cron.types import CronJob, CronPayload
+    from nanobot_hive.optional.scheduler.types import CronJob, CronPayload
     cron.register_system_job(CronJob(
         id="dream",
         name="dream",
@@ -872,9 +872,9 @@ def agent(
     """Interact with the agent directly."""
     from loguru import logger
 
-    from nanobot_hive.agent.loop import AgentLoop
-    from nanobot_hive.bus.queue import MessageBus
-    from nanobot_hive.cron.service import CronService
+    from nanobot_hive.core.loop import AgentLoop
+    from nanobot_hive.optional.bus.asyncio_queue import MessageBus
+    from nanobot_hive.optional.scheduler.service import CronService
 
     config = _load_runtime_config(config, workspace)
     sync_workspace_templates(config.workspace_path)
@@ -953,7 +953,7 @@ def agent(
         asyncio.run(run_once())
     else:
         # Interactive mode — route through bus like other channels
-        from nanobot_hive.bus.events import InboundMessage
+        from nanobot_hive.core.events import InboundMessage
         _init_prompt_session()
         console.print(f"{__logo__} Interactive mode (type [bold]exit[/bold] or [bold]Ctrl+C[/bold] to quit)\n")
 
@@ -1292,7 +1292,7 @@ def status():
     console.print(f"Workspace: {workspace} {'[green]✓[/green]' if workspace.exists() else '[red]✗[/red]'}")
 
     if config_path.exists():
-        from nanobot_hive.providers.registry import PROVIDERS
+        from nanobot_hive.optional.llm.registry import PROVIDERS
 
         console.print(f"Model: {config.agents.defaults.model}")
 
@@ -1338,7 +1338,7 @@ def provider_login(
     provider: str = typer.Argument(..., help="OAuth provider (e.g. 'openai-codex', 'github-copilot')"),
 ):
     """Authenticate with an OAuth provider."""
-    from nanobot_hive.providers.registry import PROVIDERS
+    from nanobot_hive.optional.llm.registry import PROVIDERS
 
     key = provider.replace("-", "_")
     spec = next((s for s in PROVIDERS if s.name == key and s.is_oauth), None)
@@ -1384,7 +1384,7 @@ def _login_openai_codex() -> None:
 @_register_login("github_copilot")
 def _login_github_copilot() -> None:
     try:
-        from nanobot_hive.providers.github_copilot_provider import login_github_copilot
+        from nanobot_hive.optional.llm.github_copilot import login_github_copilot
 
         console.print("[cyan]Starting GitHub Copilot device flow...[/cyan]\n")
         token = login_github_copilot(

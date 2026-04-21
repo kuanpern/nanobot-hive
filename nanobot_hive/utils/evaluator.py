@@ -13,7 +13,7 @@ from loguru import logger
 from nanobot_hive.utils.prompt_templates import render_template
 
 if TYPE_CHECKING:
-    from nanobot_hive.providers.base import LLMProvider
+    from nanobot_hive.optional.llm.base import LLMProvider
 
 _EVALUATE_TOOL = [
     {

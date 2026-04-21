@@ -6,7 +6,7 @@ from dataclasses import dataclass
 from typing import TYPE_CHECKING, Any, Awaitable, Callable
 
 if TYPE_CHECKING:
-    from nanobot_hive.bus.events import InboundMessage, OutboundMessage
+    from nanobot_hive.core.events import InboundMessage, OutboundMessage
     from nanobot_hive.session.manager import Session
 
 Handler = Callable[["CommandContext"], Awaitable["OutboundMessage | None"]]
