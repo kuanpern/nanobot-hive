@@ -1,8 +1,8 @@
 """Agent tools module."""
 
-from nanobot.core.tools.base import Schema, Tool, tool_parameters
-from nanobot.core.tools.registry import ToolRegistry
-from nanobot.core.tools.schema import (
+from nanobot.agent.tools.base import Schema, Tool, tool_parameters
+from nanobot.agent.tools.registry import ToolRegistry
+from nanobot.agent.tools.schema import (
     ArraySchema,
     BooleanSchema,
     IntegerSchema,

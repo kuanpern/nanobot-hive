@@ -8,7 +8,7 @@ from typing import Any
 
 from nanobot.agent.hook import AgentHook
 from nanobot.agent.loop import AgentLoop
-from nanobot.optional.bus import get_bus
+from nanobot.bus import get_bus
 
 
 @dataclass(slots=True)
@@ -119,8 +119,8 @@ class Nanobot:
 
 def _make_provider(config: Any) -> Any:
     """Create the LLM provider from config (extracted from CLI)."""
-    from nanobot.optional.llm.base import GenerationSettings
-    from nanobot.optional.llm.registry import find_by_name
+    from nanobot.providers.base import GenerationSettings
+    from nanobot.providers.registry import find_by_name
 
     model = config.agents.defaults.model
     provider_name = config.get_provider_name(model)
@@ -138,21 +138,21 @@ def _make_provider(config: Any) -> Any:
             raise ValueError(f"No API key configured for provider '{provider_name}'.")
 
     if backend == "openai_codex":
-        from nanobot.optional.llm.openai_codex_provider import OpenAICodexProvider
+        from nanobot.providers.openai_codex_provider import OpenAICodexProvider
 
         provider = OpenAICodexProvider(default_model=model)
     elif backend == "github_copilot":
-        from nanobot.optional.llm.github_copilot_provider import GitHubCopilotProvider
+        from nanobot.providers.github_copilot_provider import GitHubCopilotProvider
 
         provider = GitHubCopilotProvider(default_model=model)
     elif backend == "azure_openai":
-        from nanobot.optional.llm.azure_openai_provider import AzureOpenAIProvider
+        from nanobot.providers.azure_openai_provider import AzureOpenAIProvider
 
         provider = AzureOpenAIProvider(
             api_key=p.api_key, api_base=p.api_base, default_model=model
         )
     elif backend == "anthropic":
-        from nanobot.optional.llm.anthropic_provider import AnthropicProvider
+        from nanobot.providers.anthropic_provider import AnthropicProvider
 
         provider = AnthropicProvider(
             api_key=p.api_key if p else None,
@@ -161,7 +161,7 @@ def _make_provider(config: Any) -> Any:
             extra_headers=p.extra_headers if p else None,
         )
     else:
-        from nanobot.optional.llm.openai_compat_provider import OpenAICompatProvider
+        from nanobot.providers.openai_compat_provider import OpenAICompatProvider
 
         provider = OpenAICompatProvider(
             api_key=p.api_key if p else None,

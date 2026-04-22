@@ -32,8 +32,8 @@ from nanobot.agent.tools.shell import ExecTool
 from nanobot.agent.tools.self import MyTool
 from nanobot.agent.tools.spawn import SpawnTool
 from nanobot.agent.tools.web import WebFetchTool, WebSearchTool
-from nanobot.bus.events import InboundMessage, OutboundMessage
-from nanobot.bus.queue import MessageBus
+from nanobot.agent.events import InboundMessage, OutboundMessage
+from nanobot.bus import MessageBus
 from nanobot.command import CommandContext, CommandRouter, register_builtin_commands
 from nanobot.config.schema import AgentDefaults
 from nanobot.providers.base import LLMProvider
@@ -45,7 +45,7 @@ from nanobot.utils.runtime import EMPTY_FINAL_RESPONSE_MESSAGE
 
 if TYPE_CHECKING:
     from nanobot.config.schema import ChannelsConfig, ExecToolConfig, ToolsConfig, WebToolsConfig
-    from nanobot.cron.service import CronService
+    from nanobot.cron import CronService
 
 
 UNIFIED_SESSION_KEY = "unified:default"

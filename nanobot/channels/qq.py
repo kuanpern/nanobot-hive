@@ -33,8 +33,8 @@ import aiohttp
 import structlog
 from pydantic import Field
 
-from nanobot.core.events import OutboundMessage
-from nanobot.optional.bus.asyncio_queue import MessageBus
+from nanobot.agent.events import OutboundMessage
+from nanobot.bus import MessageBus
 from nanobot.channels.base import BaseChannel
 from nanobot.config.schema import Base
 from nanobot.security.network import validate_url_target

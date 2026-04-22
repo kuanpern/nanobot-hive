@@ -15,8 +15,8 @@ import structlog
 logger = structlog.get_logger()
 
 from nanobot.telemetry import record_metric, trace
-from nanobot.core.tools.base import Tool, tool_parameters
-from nanobot.core.tools.schema import IntegerSchema, StringSchema, tool_parameters_schema
+from nanobot.agent.tools.base import Tool, tool_parameters
+from nanobot.agent.tools.schema import IntegerSchema, StringSchema, tool_parameters_schema
 from nanobot.utils.helpers import build_image_content_blocks
 
 if TYPE_CHECKING:

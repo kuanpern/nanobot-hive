@@ -11,7 +11,7 @@ import httpx
 from oauth_cli_kit.models import OAuthToken
 from oauth_cli_kit.storage import FileTokenStorage
 
-from nanobot.optional.llm.langchain_provider import LangChainProvider
+from nanobot.providers.langchain_provider import LangChainProvider
 
 DEFAULT_GITHUB_DEVICE_CODE_URL = "https://github.com/login/device/code"
 DEFAULT_GITHUB_ACCESS_TOKEN_URL = "https://github.com/login/oauth/access_token"
@@ -171,7 +171,7 @@ class GitHubCopilotProvider(LangChainProvider):
 
     def __init__(self, default_model: str = "github-copilot/gpt-4.1") -> None:
         from langchain_openai import ChatOpenAI
-        from nanobot.optional.llm.registry import find_by_name
+        from nanobot.providers.registry import find_by_name
 
         self._copilot_access_token: str | None = None
         self._copilot_expires_at: float = 0.0

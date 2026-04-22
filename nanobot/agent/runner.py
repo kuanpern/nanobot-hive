@@ -11,10 +11,10 @@ from typing import Any
 import structlog
 logger = structlog.get_logger()
 
-from nanobot.core.hook import AgentHook, AgentHookContext
+from nanobot.agent.hook import AgentHook, AgentHookContext
 from nanobot.utils.prompt_templates import render_template
-from nanobot.core.tools.registry import ToolRegistry
-from nanobot.optional.llm.base import LLMProvider, ToolCallRequest
+from nanobot.agent.tools.registry import ToolRegistry
+from nanobot.providers.base import LLMProvider, ToolCallRequest
 from nanobot.utils.helpers import (
     build_assistant_message,
     estimate_message_tokens,

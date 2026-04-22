@@ -16,12 +16,12 @@ logger = structlog.get_logger()
 from nanobot.utils.prompt_templates import render_template
 from nanobot.utils.helpers import ensure_dir, estimate_message_tokens, estimate_prompt_tokens_chain, strip_think
 
-from nanobot.core.runner import AgentRunSpec, AgentRunner
-from nanobot.core.tools.registry import ToolRegistry
+from nanobot.agent.runner import AgentRunSpec, AgentRunner
+from nanobot.agent.tools.registry import ToolRegistry
 from nanobot.utils.gitstore import GitStore
 
 if TYPE_CHECKING:
-    from nanobot.optional.llm.base import LLMProvider
+    from nanobot.providers.base import LLMProvider
     from nanobot.session.manager import Session, SessionManager
 
 

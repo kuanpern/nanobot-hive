@@ -11,19 +11,19 @@ from typing import Any
 import structlog
 logger = structlog.get_logger()
 
-from nanobot.core.hook import AgentHook, AgentHookContext
+from nanobot.agent.hook import AgentHook, AgentHookContext
 from nanobot.utils.prompt_templates import render_template
-from nanobot.core.runner import AgentRunSpec, AgentRunner
-from nanobot.core.skills import BUILTIN_SKILLS_DIR
-from nanobot.core.tools.filesystem import EditFileTool, ListDirTool, ReadFileTool, WriteFileTool
-from nanobot.core.tools.registry import ToolRegistry
-from nanobot.core.tools.search import GlobTool, GrepTool
-from nanobot.core.tools.shell import ExecTool
-from nanobot.core.tools.web import WebFetchTool, WebSearchTool
-from nanobot.core.events import InboundMessage
-from nanobot.optional.bus.asyncio_queue import MessageBus
+from nanobot.agent.runner import AgentRunSpec, AgentRunner
+from nanobot.agent.skills import BUILTIN_SKILLS_DIR
+from nanobot.agent.tools.filesystem import EditFileTool, ListDirTool, ReadFileTool, WriteFileTool
+from nanobot.agent.tools.registry import ToolRegistry
+from nanobot.agent.tools.search import GlobTool, GrepTool
+from nanobot.agent.tools.shell import ExecTool
+from nanobot.agent.tools.web import WebFetchTool, WebSearchTool
+from nanobot.agent.events import InboundMessage
+from nanobot.bus import MessageBus
 from nanobot.config.schema import ExecToolConfig, WebToolsConfig
-from nanobot.optional.llm.base import LLMProvider
+from nanobot.providers.base import LLMProvider
 
 
 @dataclass(slots=True)
@@ -285,8 +285,8 @@ class SubagentManager:
 
     def _build_subagent_prompt(self) -> str:
         """Build a focused system prompt for the subagent."""
-        from nanobot.core.context import ContextBuilder
-        from nanobot.core.skills import SkillsLoader
+        from nanobot.agent.context import ContextBuilder
+        from nanobot.agent.skills import SkillsLoader
 
         time_ctx = ContextBuilder._build_runtime_context(None, None)
         skills_summary = SkillsLoader(

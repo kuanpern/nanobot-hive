@@ -3,11 +3,11 @@
 from contextvars import ContextVar
 from typing import TYPE_CHECKING, Any
 
-from nanobot.core.tools.base import Tool, tool_parameters
-from nanobot.core.tools.schema import StringSchema, tool_parameters_schema
+from nanobot.agent.tools.base import Tool, tool_parameters
+from nanobot.agent.tools.schema import StringSchema, tool_parameters_schema
 
 if TYPE_CHECKING:
-    from nanobot.core.subagent import SubagentManager
+    from nanobot.agent.subagent import SubagentManager
 
 
 @tool_parameters(

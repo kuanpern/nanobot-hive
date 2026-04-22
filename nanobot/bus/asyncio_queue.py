@@ -2,7 +2,7 @@
 
 import asyncio
 
-from nanobot.core.events import InboundMessage, OutboundMessage
+from nanobot.agent.events import InboundMessage, OutboundMessage
 from nanobot.telemetry import trace
 
 

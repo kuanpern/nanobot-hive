@@ -8,7 +8,7 @@ import re
 from pathlib import Path, PurePosixPath
 from typing import Any, Iterable, TypeVar
 
-from nanobot.core.tools.filesystem import ListDirTool, _FsTool
+from nanobot.agent.tools.filesystem import ListDirTool, _FsTool
 
 _DEFAULT_HEAD_LIMIT = 250
 T = TypeVar("T")

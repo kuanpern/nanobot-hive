@@ -8,8 +8,8 @@ from typing import Any, Callable, Coroutine, Literal
 import structlog
 logger = structlog.get_logger()
 
-from nanobot.optional.scheduler.service import CronService
-from nanobot.optional.scheduler.types import CronJob, CronSchedule
+from nanobot.cron.service import CronService
+from nanobot.cron.types import CronJob, CronSchedule
 
 
 class APSchedulerCronService(CronService):

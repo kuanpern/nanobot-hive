@@ -20,7 +20,7 @@ from langchain_core.messages import (
     ToolMessage,
 )
 
-from nanobot.optional.llm.base import LLMProvider, LLMResponse, ToolCallRequest
+from nanobot.providers.base import LLMProvider, LLMResponse, ToolCallRequest
 
 if TYPE_CHECKING:
     from langchain_core.language_models import BaseChatModel

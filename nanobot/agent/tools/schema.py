@@ -14,7 +14,7 @@ from __future__ import annotations
 from collections.abc import Mapping
 from typing import Any
 
-from nanobot.core.tools.base import Schema
+from nanobot.agent.tools.base import Schema
 
 
 class StringSchema(Schema):

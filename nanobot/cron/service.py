@@ -13,7 +13,7 @@ from filelock import FileLock
 import structlog
 logger = structlog.get_logger()
 
-from nanobot.optional.scheduler.types import CronJob, CronJobState, CronPayload, CronRunRecord, CronSchedule, CronStore
+from nanobot.cron.types import CronJob, CronJobState, CronPayload, CronRunRecord, CronSchedule, CronStore
 
 
 def _now_ms() -> int:

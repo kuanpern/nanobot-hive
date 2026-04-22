@@ -14,7 +14,7 @@ logger = structlog.get_logger()
 from nanobot.utils.prompt_templates import render_template
 
 if TYPE_CHECKING:
-    from nanobot.optional.llm.base import LLMProvider
+    from nanobot.providers.base import LLMProvider
 
 _EVALUATE_TOOL = [
     {

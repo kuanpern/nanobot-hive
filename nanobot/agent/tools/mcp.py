@@ -8,8 +8,8 @@ import httpx
 import structlog
 logger = structlog.get_logger()
 
-from nanobot.core.tools.base import Tool
-from nanobot.core.tools.registry import ToolRegistry
+from nanobot.agent.tools.base import Tool
+from nanobot.agent.tools.registry import ToolRegistry
 
 # Transient connection errors that warrant a single retry.
 # These typically happen when an MCP server restarts or a network

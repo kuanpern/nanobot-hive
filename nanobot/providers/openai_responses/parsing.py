@@ -11,7 +11,7 @@ import json_repair
 import structlog
 logger = structlog.get_logger()
 
-from nanobot.optional.llm.base import LLMResponse, ToolCallRequest
+from nanobot.providers.base import LLMResponse, ToolCallRequest
 
 FINISH_REASON_MAP = {
     "completed": "stop",

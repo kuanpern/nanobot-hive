@@ -26,8 +26,8 @@ import httpx
 import structlog
 from pydantic import Field
 
-from nanobot.bus.events import OutboundMessage
-from nanobot.bus.queue import MessageBus
+from nanobot.agent.events import OutboundMessage
+from nanobot.bus import MessageBus
 from nanobot.channels.base import BaseChannel
 from nanobot.config.paths import get_workspace_path
 from nanobot.config.schema import Base

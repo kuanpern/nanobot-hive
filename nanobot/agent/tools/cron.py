@@ -12,7 +12,7 @@ from nanobot.agent.tools.schema import (
     StringSchema,
     tool_parameters_schema,
 )
-from nanobot.cron.service import CronService
+from nanobot.cron import CronService
 from nanobot.cron.types import CronJob, CronJobState, CronSchedule
 
 _CRON_PARAMETERS = tool_parameters_schema(

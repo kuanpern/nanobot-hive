@@ -1,0 +1,197 @@
+.
+├── agent
+│   ├── autocompact.py
+│   ├── context.py
+│   ├── events.py
+│   ├── hook.py
+│   ├── __init__.py
+│   ├── loop.py
+│   ├── memory.py
+│   ├── __pycache__
+│   │   └── __init__.cpython-312.pyc
+│   ├── runner.py
+│   ├── skills.py
+│   ├── subagent.py
+│   └── tools
+│       ├── base.py
+│       ├── cron.py
+│       ├── file_state.py
+│       ├── filesystem.py
+│       ├── __init__.py
+│       ├── mcp.py
+│       ├── message.py
+│       ├── notebook.py
+│       ├── registry.py
+│       ├── sandbox.py
+│       ├── schema.py
+│       ├── search.py
+│       ├── self.py
+│       ├── shell.py
+│       ├── spawn.py
+│       └── web.py
+├── api
+│   ├── __init__.py
+│   └── server.py
+├── channels
+│   ├── base.py
+│   ├── dingtalk.py
+│   ├── discord.py
+│   ├── email.py
+│   ├── feishu.py
+│   ├── __init__.py
+│   ├── manager.py
+│   ├── matrix.py
+│   ├── mochat.py
+│   ├── msteams.py
+│   ├── qq.py
+│   ├── registry.py
+│   ├── slack.py
+│   ├── telegram.py
+│   ├── websocket.py
+│   ├── wecom.py
+│   ├── weixin.py
+│   └── whatsapp.py
+├── cli
+│   ├── commands.py
+│   ├── __init__.py
+│   ├── models.py
+│   ├── onboard.py
+│   ├── __pycache__
+│   │   └── commands.cpython-312.pyc
+│   └── stream.py
+├── command
+│   ├── builtin.py
+│   ├── __init__.py
+│   └── router.py
+├── config
+│   ├── __init__.py
+│   ├── loader.py
+│   ├── paths.py
+│   ├── schema.py
+│   └── telemetry.py
+├── heartbeat
+│   ├── __init__.py
+│   └── service.py
+├── __init__.py
+├── main
+│   ├── __init__.py
+│   └── __main__.py
+├── __main__.py
+├── nanobot.py
+├── optional
+│   ├── bus
+│   │   ├── asyncio_queue.py
+│   │   ├── base.py
+│   │   ├── __init__.py
+│   │   └── redis_pubsub.py
+│   ├── __init__.py
+│   ├── llm
+│   │   ├── anthropic_provider.py
+│   │   ├── azure_openai_provider.py
+│   │   ├── base.py
+│   │   ├── github_copilot_provider.py
+│   │   ├── __init__.py
+│   │   ├── langchain_provider.py
+│   │   ├── openai_codex_provider.py
+│   │   ├── openai_compat_provider.py
+│   │   ├── openai_responses
+│   │   │   ├── converters.py
+│   │   │   ├── __init__.py
+│   │   │   └── parsing.py
+│   │   ├── registry.py
+│   │   └── transcription.py
+│   ├── scheduler
+│   │   ├── apscheduler.py
+│   │   ├── base.py
+│   │   ├── __init__.py
+│   │   ├── service.py
+│   │   └── types.py
+│   ├── vector
+│   │   ├── embedding.py
+│   │   ├── __init__.py
+│   │   └── store.py
+│   └── web
+│       ├── base.py
+│       ├── default.py
+│       ├── __init__.py
+│       └── playwright.py
+├── __pycache__
+│   ├── __init__.cpython-312.pyc
+│   └── nanobot.cpython-312.pyc
+├── security
+│   ├── __init__.py
+│   └── network.py
+├── session
+│   ├── __init__.py
+│   └── manager.py
+├── skills
+│   ├── clawhub
+│   │   └── SKILL.md
+│   ├── cron
+│   │   └── SKILL.md
+│   ├── github
+│   │   └── SKILL.md
+│   ├── memory
+│   │   └── SKILL.md
+│   ├── my
+│   │   ├── references
+│   │   │   └── examples.md
+│   │   └── SKILL.md
+│   ├── README.md
+│   ├── skill-creator
+│   │   ├── scripts
+│   │   │   ├── init_skill.py
+│   │   │   ├── package_skill.py
+│   │   │   └── quick_validate.py
+│   │   └── SKILL.md
+│   ├── summarize
+│   │   └── SKILL.md
+│   ├── tmux
+│   │   ├── scripts
+│   │   │   ├── find-sessions.sh
+│   │   │   └── wait-for-text.sh
+│   │   └── SKILL.md
+│   └── weather
+│       └── SKILL.md
+├── telemetry.py
+├── templates
+│   ├── agent
+│   │   ├── consolidator_archive.md
+│   │   ├── dream_phase1.md
+│   │   ├── dream_phase2.md
+│   │   ├── evaluator.md
+│   │   ├── identity.md
+│   │   ├── max_iterations_message.md
+│   │   ├── platform_policy.md
+│   │   ├── skills_section.md
+│   │   ├── _snippets
+│   │   │   └── untrusted_content.md
+│   │   ├── subagent_announce.md
+│   │   └── subagent_system.md
+│   ├── AGENTS.md
+│   ├── HEARTBEAT.md
+│   ├── __init__.py
+│   ├── memory
+│   │   ├── __init__.py
+│   │   └── MEMORY.md
+│   ├── SOUL.md
+│   ├── TOOLS.md
+│   └── USER.md
+├── tree.txt
+├── utils
+│   ├── document.py
+│   ├── evaluator.py
+│   ├── gitstore.py
+│   ├── helpers.py
+│   ├── __init__.py
+│   ├── logging_setup.py
+│   ├── path.py
+│   ├── prompt_templates.py
+│   ├── restart.py
+│   ├── runtime.py
+│   ├── searchusage.py
+│   └── tool_hints.py
+└── web
+    └── __init__.py
+
+41 directories, 154 files

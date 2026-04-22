@@ -7,7 +7,7 @@ import os
 import sys
 
 from nanobot import __version__
-from nanobot.core.events import OutboundMessage
+from nanobot.agent.events import OutboundMessage
 from nanobot.command.router import CommandContext, CommandRouter
 from nanobot.utils.helpers import build_status_content
 from nanobot.utils.restart import set_restart_notice_to_env

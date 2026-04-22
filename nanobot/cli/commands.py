@@ -411,8 +411,8 @@ def _make_provider(config: Config):
 
     Routing is driven by ``ProviderSpec.backend`` in the registry.
     """
-    from nanobot.optional.llm.base import GenerationSettings
-    from nanobot.optional.llm.registry import find_by_name
+    from nanobot.providers.base import GenerationSettings
+    from nanobot.providers.registry import find_by_name
 
     model = config.agents.defaults.model
     provider_name = config.get_provider_name(model)
@@ -437,11 +437,11 @@ def _make_provider(config: Config):
 
     # --- instantiation by backend ---
     if backend == "openai_codex":
-        from nanobot.optional.llm.openai_codex_provider import OpenAICodexProvider
+        from nanobot.providers.openai_codex_provider import OpenAICodexProvider
 
         provider = OpenAICodexProvider(default_model=model)
     elif backend == "azure_openai":
-        from nanobot.optional.llm.azure_openai_provider import AzureOpenAIProvider
+        from nanobot.providers.azure_openai_provider import AzureOpenAIProvider
 
         provider = AzureOpenAIProvider(
             api_key=p.api_key,
@@ -449,10 +449,10 @@ def _make_provider(config: Config):
             default_model=model,
         )
     elif backend == "github_copilot":
-        from nanobot.optional.llm.github_copilot_provider import GitHubCopilotProvider
+        from nanobot.providers.github_copilot_provider import GitHubCopilotProvider
         provider = GitHubCopilotProvider(default_model=model)
     elif backend == "anthropic":
-        from nanobot.optional.llm.anthropic_provider import AnthropicProvider
+        from nanobot.providers.anthropic_provider import AnthropicProvider
 
         provider = AnthropicProvider(
             api_key=p.api_key if p else None,
@@ -461,7 +461,7 @@ def _make_provider(config: Config):
             extra_headers=p.extra_headers if p else None,
         )
     else:
-        from nanobot.optional.llm.openai_compat_provider import OpenAICompatProvider
+        from nanobot.providers.openai_compat_provider import OpenAICompatProvider
 
         provider = OpenAICompatProvider(
             api_key=p.api_key if p else None,
@@ -558,7 +558,7 @@ def serve(
 
     from nanobot.agent.loop import AgentLoop
     from nanobot.api.server import create_app
-    from nanobot.optional.bus import get_bus
+    from nanobot.bus import get_bus
     from nanobot.session.manager import SessionManager
 
     configure_logging(verbose=verbose)
@@ -651,9 +651,9 @@ def _run_gateway(
 ) -> None:
     """Shared gateway runtime; ``open_browser_url`` opens a tab once channels are up."""
     from nanobot.agent.loop import AgentLoop
-    from nanobot.optional.bus import get_bus
+    from nanobot.bus import get_bus
     from nanobot.channels.manager import ChannelManager
-    from nanobot.cron.service import CronService
+    from nanobot.cron import CronService
     from nanobot.cron.types import CronJob
     from nanobot.heartbeat.service import HeartbeatService
     from nanobot.session.manager import SessionManager
@@ -711,8 +711,8 @@ def _run_gateway(
                 logger.exception("Dream cron job failed")
             return None
 
-        from nanobot.core.tools.cron import CronTool
-        from nanobot.core.tools.message import MessageTool
+        from nanobot.agent.tools.cron import CronTool
+        from nanobot.agent.tools.message import MessageTool
         from nanobot.utils.evaluator import evaluate_response
 
         reminder_note = (
@@ -752,7 +752,7 @@ def _run_gateway(
                 response, reminder_note, provider, agent.model,
             )
             if should_notify:
-                from nanobot.core.events import OutboundMessage
+                from nanobot.agent.events import OutboundMessage
                 await bus.publish_outbound(OutboundMessage(
                     channel=job.payload.channel or "cli",
                     chat_id=job.payload.to,
@@ -808,7 +808,7 @@ def _run_gateway(
 
     async def on_heartbeat_notify(response: str) -> None:
         """Deliver a heartbeat response to the user's channel."""
-        from nanobot.core.events import OutboundMessage
+        from nanobot.agent.events import OutboundMessage
         channel, chat_id = _pick_heartbeat_target()
         if channel == "cli":
             return  # No external channel available to deliver to
@@ -1027,8 +1027,8 @@ def agent(
 ):
     """Interact with the agent directly."""
     from nanobot.agent.loop import AgentLoop
-    from nanobot.optional.bus import get_bus
-    from nanobot.optional.scheduler.service import CronService
+    from nanobot.bus import get_bus
+    from nanobot.cron import CronService
 
     config = _load_runtime_config(config, workspace)
     sync_workspace_templates(config.workspace_path)
@@ -1108,7 +1108,7 @@ def agent(
         asyncio.run(run_once())
     else:
         # Interactive mode — route through bus like other channels
-        from nanobot.core.events import InboundMessage
+        from nanobot.agent.events import InboundMessage
         _init_prompt_session()
         console.print(f"{__logo__} Interactive mode [bold blue]({config.agents.defaults.model})[/bold blue] — type [bold]exit[/bold] or [bold]Ctrl+C[/bold] to quit\n")
 
@@ -1447,7 +1447,7 @@ def status():
     console.print(f"Workspace: {workspace} {'[green]✓[/green]' if workspace.exists() else '[red]✗[/red]'}")
 
     if config_path.exists():
-        from nanobot.optional.llm.registry import PROVIDERS
+        from nanobot.providers.registry import PROVIDERS
 
         console.print(f"Model: {config.agents.defaults.model}")
 
@@ -1479,7 +1479,7 @@ app.add_typer(cron_app, name="cron")
 
 def _load_cron_service(config: str | None = None, workspace: str | None = None):
     """Return a CronService instance pointed at the configured store path."""
-    from nanobot.optional.scheduler.service import CronService
+    from nanobot.cron import CronService
 
     cfg = _load_runtime_config(config, workspace)
     return CronService(cfg.workspace_path / "cron" / "jobs.json")
@@ -1568,7 +1568,7 @@ def cron_add(
     from datetime import datetime
     from zoneinfo import ZoneInfo
 
-    from nanobot.optional.scheduler.types import CronSchedule
+    from nanobot.cron.types import CronSchedule
 
     provided = sum(x is not None for x in (every, cron_expr, at))
     if provided == 0:
@@ -1662,7 +1662,7 @@ def provider_login(
     provider: str = typer.Argument(..., help="OAuth provider (e.g. 'openai-codex', 'github-copilot')"),
 ):
     """Authenticate with an OAuth provider."""
-    from nanobot.optional.llm.registry import PROVIDERS
+    from nanobot.providers.registry import PROVIDERS
 
     key = provider.replace("-", "_")
     spec = next((s for s in PROVIDERS if s.name == key and s.is_oauth), None)
@@ -1708,7 +1708,7 @@ def _login_openai_codex() -> None:
 @_register_login("github_copilot")
 def _login_github_copilot() -> None:
     try:
-        from nanobot.optional.llm.github_copilot_provider import login_github_copilot
+        from nanobot.providers.github_copilot_provider import login_github_copilot
 
         console.print("[cyan]Starting GitHub Copilot device flow...[/cyan]\n")
         token = login_github_copilot(

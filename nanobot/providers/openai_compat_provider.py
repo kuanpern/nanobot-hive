@@ -8,10 +8,10 @@ from typing import Any, TYPE_CHECKING
 
 from langchain_openai import ChatOpenAI
 
-from nanobot.optional.llm.langchain_provider import LangChainProvider
+from nanobot.providers.langchain_provider import LangChainProvider
 
 if TYPE_CHECKING:
-    from nanobot.optional.llm.registry import ProviderSpec
+    from nanobot.providers.registry import ProviderSpec
 
 _DEFAULT_OPENROUTER_HEADERS = {
     "HTTP-Referer": "https://github.com/HKUDS/nanobot",

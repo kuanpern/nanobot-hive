@@ -6,7 +6,7 @@ from typing import Any
 
 from langchain_anthropic import ChatAnthropic
 
-from nanobot.optional.llm.langchain_provider import LangChainProvider
+from nanobot.providers.langchain_provider import LangChainProvider
 
 
 class AnthropicProvider(LangChainProvider):

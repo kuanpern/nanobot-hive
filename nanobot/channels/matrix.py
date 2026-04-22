@@ -42,8 +42,8 @@ except ImportError as e:
         "Matrix dependencies not installed. Run: pip install nanobot-ai[matrix]"
     ) from e
 
-from nanobot.core.events import OutboundMessage
-from nanobot.optional.bus.asyncio_queue import MessageBus
+from nanobot.agent.events import OutboundMessage
+from nanobot.bus import MessageBus
 from nanobot.channels.base import BaseChannel
 from nanobot.config.paths import get_data_dir, get_media_dir
 from nanobot.config.schema import Base

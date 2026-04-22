@@ -3,9 +3,9 @@
 from contextvars import ContextVar
 from typing import Any, Awaitable, Callable
 
-from nanobot.core.tools.base import Tool, tool_parameters
-from nanobot.core.tools.schema import ArraySchema, StringSchema, tool_parameters_schema
-from nanobot.core.events import OutboundMessage
+from nanobot.agent.tools.base import Tool, tool_parameters
+from nanobot.agent.tools.schema import ArraySchema, StringSchema, tool_parameters_schema
+from nanobot.agent.events import OutboundMessage
 
 
 @tool_parameters(

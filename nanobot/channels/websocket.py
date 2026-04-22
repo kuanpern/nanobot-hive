@@ -25,8 +25,8 @@ from websockets.exceptions import ConnectionClosed
 from websockets.http11 import Request as WsRequest
 from websockets.http11 import Response
 
-from nanobot.bus.events import OutboundMessage
-from nanobot.bus.queue import MessageBus
+from nanobot.agent.events import OutboundMessage
+from nanobot.bus import MessageBus
 from nanobot.channels.base import BaseChannel
 from nanobot.config.schema import Base
 

@@ -16,8 +16,8 @@ import httpx
 import structlog
 from oauth_cli_kit import get_token as get_codex_token
 
-from nanobot.optional.llm.base import LLMProvider, LLMResponse, ToolCallRequest
-from nanobot.optional.llm.openai_responses import (
+from nanobot.providers.base import LLMProvider, LLMResponse, ToolCallRequest
+from nanobot.providers.openai_responses import (
     consume_sse,
     convert_messages,
     convert_tools,

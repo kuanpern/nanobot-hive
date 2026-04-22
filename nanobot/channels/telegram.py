@@ -16,8 +16,8 @@ from telegram.error import BadRequest, NetworkError, TimedOut
 from telegram.ext import Application, ContextTypes, MessageHandler, filters
 from telegram.request import HTTPXRequest
 
-from nanobot.core.events import OutboundMessage
-from nanobot.optional.bus.asyncio_queue import MessageBus
+from nanobot.agent.events import OutboundMessage
+from nanobot.bus import MessageBus
 from nanobot.channels.base import BaseChannel
 from nanobot.command.builtin import build_help_text
 from nanobot.config.paths import get_media_dir

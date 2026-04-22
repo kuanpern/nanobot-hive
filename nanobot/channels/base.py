@@ -9,8 +9,8 @@ from typing import Any
 import structlog
 logger = structlog.get_logger()
 
-from nanobot.core.events import InboundMessage, OutboundMessage
-from nanobot.optional.bus.asyncio_queue import MessageBus
+from nanobot.agent.events import InboundMessage, OutboundMessage
+from nanobot.bus import MessageBus
 
 
 class BaseChannel(ABC):

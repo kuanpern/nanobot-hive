@@ -12,7 +12,7 @@ logger = structlog.get_logger()
 from nanobot.telemetry import record_metric, trace
 
 if TYPE_CHECKING:
-    from nanobot.optional.llm.base import LLMProvider
+    from nanobot.providers.base import LLMProvider
 
 _HEARTBEAT_TOOL = [
     {
