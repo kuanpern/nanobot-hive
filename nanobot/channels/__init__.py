@@ -1,4 +1,7 @@
-"""Chat channels module with plugin architecture."""
+"""
+Chat channels module.
+Use ChannelManager to orchestrate communication.
+"""
 
 from nanobot.channels.base import BaseChannel
 from nanobot.channels.manager import ChannelManager
