@@ -18,7 +18,8 @@ from nanobot.telemetry import record_metric, trace
 from nanobot.agent.autocompact import AutoCompact
 from nanobot.agent.context import ContextBuilder
 from nanobot.agent.engine.hook import AgentHook, AgentHookContext, CompositeHook
-from nanobot.agent.memory.store import Consolidator, Dream
+from nanobot.agent.memory.consolidator import Consolidator
+from nanobot.agent.memory.dream import Dream
 from nanobot.agent.engine.runner import _MAX_INJECTIONS_PER_TURN, AgentRunner, AgentRunSpec
 from nanobot.agent.skills import BUILTIN_SKILLS_DIR
 from nanobot.agent.subagent import SubagentManager
@@ -42,6 +43,7 @@ from nanobot.utils.document import extract_documents
 from nanobot.utils.helpers import image_placeholder_text
 from nanobot.utils.helpers import truncate_text as truncate_text_fn
 from nanobot.utils.runtime import EMPTY_FINAL_RESPONSE_MESSAGE
+from nanobot.agent.coordinator import AgentCoordinator
 
 if TYPE_CHECKING:
     from nanobot.core.config.schema import ChannelsConfig, ExecToolConfig, ToolsConfig, WebToolsConfig
@@ -74,6 +76,7 @@ class _LoopHook(AgentHook):
         self._chat_id = chat_id
         self._message_id = message_id
         self._stream_buf = ""
+        self.coordinator = AgentCoordinator(provider, tools, sessions)
 
     def wants_streaming(self) -> bool:
         return self._on_stream is not None
@@ -250,6 +253,15 @@ class AgentLoop:
             model=self.model,
         )
         self._register_default_tools()
+
+        self.coordinator = AgentCoordinator(
+            provider=provider,
+            tools=self.tools,
+            sessions=self.sessions,
+            workspace=self.workspace,
+            model=self.model
+        )
+
         if _tc.my.enable:
             self.tools.register(MyTool(loop=self, modify_allowed=_tc.my.allow_set))
         self._runtime_vars: dict[str, Any] = {}
@@ -528,116 +540,28 @@ class AgentLoop:
                 else None
             )
 
-    async def _dispatch(self, msg: InboundMessage) -> None:
-        """Process a message: per-session serial, cross-session concurrent."""
+    async def _dispatch(self, msg: InboundMessage):
+        """Focuses only on message routing and locking."""
         session_key = self._effective_session_key(msg)
-        if session_key != msg.session_key:
-            msg = dataclasses.replace(msg, session_key_override=session_key)
-        lock = self._session_locks.setdefault(session_key, asyncio.Lock())
-        gate = self._concurrency_gate or nullcontext()
+        
+        # Build messages using existing context logic
+        session = self.sessions.get_or_create(session_key)
+        history = session.get_history()
+        messages = self.context.build_messages(
+            history=history,
+            current_message=msg.content
+        )
 
-        # Register a pending queue so follow-up messages for this session are
-        # routed here (mid-turn injection) instead of spawning a new task.
-        pending = asyncio.Queue(maxsize=20)
-        self._pending_queues[session_key] = pending
+        async with self._session_locks[session_key]:
+            # Delegate to Coordinator
+            result = await self.coordinator.execute_turn(session_key, msg.content, messages)
+            
+            await self.bus.publish_outbound(OutboundMessage(
+                channel=msg.channel, 
+                chat_id=msg.chat_id, 
+                content=result.final_content or ""
+            ))
 
-        try:
-            async with lock, gate:
-                try:
-                    on_stream = on_stream_end = None
-                    if msg.metadata.get("_wants_stream"):
-                        # Split one answer into distinct stream segments.
-                        stream_base_id = f"{msg.session_key}:{time.time_ns()}"
-                        stream_segment = 0
-
-                        def _current_stream_id() -> str:
-                            return f"{stream_base_id}:{stream_segment}"
-
-                        async def on_stream(delta: str) -> None:
-                            meta = dict(msg.metadata or {})
-                            meta["_stream_delta"] = True
-                            meta["_stream_id"] = _current_stream_id()
-                            await self.bus.publish_outbound(OutboundMessage(
-                                channel=msg.channel, chat_id=msg.chat_id,
-                                content=delta,
-                                metadata=meta,
-                            ))
-
-                        async def on_stream_end(*, resuming: bool = False) -> None:
-                            nonlocal stream_segment
-                            meta = dict(msg.metadata or {})
-                            meta["_stream_end"] = True
-                            meta["_resuming"] = resuming
-                            meta["_stream_id"] = _current_stream_id()
-                            await self.bus.publish_outbound(OutboundMessage(
-                                channel=msg.channel, chat_id=msg.chat_id,
-                                content="",
-                                metadata=meta,
-                            ))
-                            stream_segment += 1
-
-                    response = await self._process_message(
-                        msg, on_stream=on_stream, on_stream_end=on_stream_end,
-                        pending_queue=pending,
-                    )
-                    if response is not None:
-                        await self.bus.publish_outbound(response)
-                    elif msg.channel == "cli":
-                        await self.bus.publish_outbound(OutboundMessage(
-                            channel=msg.channel, chat_id=msg.chat_id,
-                            content="", metadata=msg.metadata or {},
-                        ))
-                except asyncio.CancelledError:
-                    logger.info("Task cancelled for session {}", session_key)
-                    # Preserve partial context from the interrupted turn so
-                    # the user does not lose tool results and assistant
-                    # messages accumulated before /stop.  The checkpoint was
-                    # already persisted to session metadata by
-                    # _emit_checkpoint during tool execution; materializing
-                    # it into session history now makes it visible in the
-                    # next conversation turn.
-                    try:
-                        key = self._effective_session_key(msg)
-                        session = self.sessions.get_or_create(key)
-                        if self._restore_runtime_checkpoint(session):
-                            self._clear_pending_user_turn(session)
-                            self.sessions.save(session)
-                            logger.info(
-                                "Restored partial context for cancelled session {}",
-                                key,
-                            )
-                    except Exception:
-                        logger.debug(
-                            "Could not restore checkpoint for cancelled session {}",
-                            session_key,
-                            exc_info=True,
-                        )
-                    raise
-                except Exception:
-                    logger.exception("Error processing message for session {}", session_key)
-                    await self.bus.publish_outbound(OutboundMessage(
-                        channel=msg.channel, chat_id=msg.chat_id,
-                        content="Sorry, I encountered an error.",
-                    ))
-        finally:
-            # Drain any messages still in the pending queue and re-publish
-            # them to the bus so they are processed as fresh inbound messages
-            # rather than silently lost.
-            queue = self._pending_queues.pop(session_key, None)
-            if queue is not None:
-                leftover = 0
-                while True:
-                    try:
-                        item = queue.get_nowait()
-                    except asyncio.QueueEmpty:
-                        break
-                    await self.bus.publish_inbound(item)
-                    leftover += 1
-                if leftover:
-                    logger.info(
-                        "Re-published {} leftover message(s) to bus for session {}",
-                        leftover, session_key,
-                    )
 
     async def close_mcp(self) -> None:
         """Drain pending background archives, then close MCP connections."""
