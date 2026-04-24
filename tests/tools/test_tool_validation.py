@@ -3,7 +3,7 @@ import subprocess
 import sys
 from typing import Any
 
-from nanobot.agent.tools import (
+from nanobot.tools import (
     ArraySchema,
     IntegerSchema,
     ObjectSchema,
@@ -12,9 +12,9 @@ from nanobot.agent.tools import (
     tool_parameters,
     tool_parameters_schema,
 )
-from nanobot.agent.tools.base import Tool
-from nanobot.agent.tools.registry import ToolRegistry
-from nanobot.agent.tools.shell import ExecTool
+from nanobot.tools.base import Tool
+from nanobot.tools.registry import ToolRegistry
+from nanobot.tools.shell import ExecTool
 
 
 class SampleTool(Tool):
@@ -265,7 +265,7 @@ def test_exec_guard_allows_media_path_outside_workspace(tmp_path, monkeypatch) -
 
 
 def test_exec_guard_blocks_windows_drive_root_outside_workspace(monkeypatch) -> None:
-    import nanobot.agent.tools.shell as shell_mod
+    import nanobot.tools.shell as shell_mod
 
     class FakeWindowsPath:
         def __init__(self, raw: str) -> None:

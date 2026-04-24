@@ -21,8 +21,8 @@ from nanobot.cli.models import (
     get_model_context_limit,
     get_model_suggestions,
 )
-from nanobot.config.loader import get_config_path, load_config
-from nanobot.config.schema import Config
+from nanobot.core.config.loader import get_config_path, load_config
+from nanobot.core.config.schema import Config
 
 logger = structlog.get_logger()
 
@@ -718,7 +718,7 @@ def _try_auto_fill_context_window(model: BaseModel, new_model_name: str) -> None
 
     # Check if current value is the default (65536)
     # We only auto-fill if the user hasn't changed it from default
-    from nanobot.config.schema import AgentDefaults
+    from nanobot.core.config.schema import AgentDefaults
 
     default_context = AgentDefaults.model_fields["context_window_tokens"].default
 

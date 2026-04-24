@@ -9,7 +9,7 @@ from mcp import types as mcp_types
 from mcp.shared.exceptions import McpError
 from mcp.types import ErrorData
 
-from nanobot.agent.tools.mcp import (
+from nanobot.tools.mcp import (
     MCPPromptWrapper,
     MCPResourceWrapper,
     MCPToolWrapper,

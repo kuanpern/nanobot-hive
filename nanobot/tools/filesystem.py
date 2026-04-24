@@ -7,11 +7,11 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
-from nanobot.agent.tools.base import Tool, tool_parameters
-from nanobot.agent.tools.schema import BooleanSchema, IntegerSchema, StringSchema, tool_parameters_schema
-from nanobot.agent.tools import file_state
+from nanobot.tools.base import Tool, tool_parameters
+from nanobot.tools.schema import BooleanSchema, IntegerSchema, StringSchema, tool_parameters_schema
+from nanobot.tools import file_state
 from nanobot.utils.helpers import build_image_content_blocks, detect_image_mime
-from nanobot.config.paths import get_media_dir
+from nanobot.core.config.paths import get_media_dir
 
 
 def _resolve_path(

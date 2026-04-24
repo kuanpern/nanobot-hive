@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from nanobot.config.loader import get_config_path
+from .loader import get_config_path
 from nanobot.utils.helpers import ensure_dir
 
 

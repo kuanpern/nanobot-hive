@@ -11,9 +11,9 @@ from typing import Any
 import structlog
 logger = structlog.get_logger()
 
-from nanobot.agent.hook import AgentHook, AgentHookContext
+from nanobot.agent.engine.hook import AgentHook, AgentHookContext
 from nanobot.utils.prompt_templates import render_template
-from nanobot.agent.tools.registry import ToolRegistry
+from nanobot.tools.registry import ToolRegistry
 from nanobot.providers.base import LLMProvider, ToolCallRequest
 from nanobot.utils.helpers import (
     build_assistant_message,

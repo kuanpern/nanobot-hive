@@ -16,7 +16,7 @@ from nanobot.providers.base import LLMResponse
 
 def _make_loop():
     """Create a minimal AgentLoop with mocked dependencies."""
-    from nanobot.agent.loop import AgentLoop
+    from nanobot.agent.engine.loop import AgentLoop
     from nanobot.bus.queue import MessageBus
 
     bus = MessageBus()

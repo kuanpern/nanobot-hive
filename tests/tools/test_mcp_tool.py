@@ -7,14 +7,14 @@ from types import ModuleType, SimpleNamespace
 
 import pytest
 
-from nanobot.agent.tools.mcp import (
+from nanobot.tools.mcp import (
     MCPResourceWrapper,
     MCPPromptWrapper,
     MCPToolWrapper,
     connect_mcp_servers,
 )
-from nanobot.agent.tools.registry import ToolRegistry
-from nanobot.config.schema import MCPServerConfig
+from nanobot.tools.registry import ToolRegistry
+from nanobot.core.config.schema import MCPServerConfig
 
 
 class _FakeTextContent:

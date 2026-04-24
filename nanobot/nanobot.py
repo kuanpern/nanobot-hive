@@ -6,9 +6,9 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
-from nanobot.agent.hook import AgentHook
-from nanobot.agent.loop import AgentLoop
-from nanobot.bus import get_bus
+from nanobot.agent.engine.hook import AgentHook
+from nanobot.agent.engine.loop import AgentLoop
+from nanobot.core.bus import get_bus
 
 
 @dataclass(slots=True)
@@ -47,8 +47,8 @@ class Nanobot:
                 ``~/.nanobot/config.json``.
             workspace: Override the workspace directory from config.
         """
-        from nanobot.config.loader import load_config, resolve_config_env_vars
-        from nanobot.config.schema import Config
+        from nanobot.core.config.loader import load_config, resolve_config_env_vars
+        from nanobot.core.config.schema import Config
 
         resolved: Path | None = None
         if config_path is not None:

@@ -11,10 +11,10 @@ from typing import Any
 import structlog
 logger = structlog.get_logger()
 
-from nanobot.agent.tools.base import Tool, tool_parameters
-from nanobot.agent.tools.sandbox import wrap_command
-from nanobot.agent.tools.schema import IntegerSchema, StringSchema, tool_parameters_schema
-from nanobot.config.paths import get_media_dir
+from nanobot.tools.base import Tool, tool_parameters
+from nanobot.tools.sandbox import wrap_command
+from nanobot.tools.schema import IntegerSchema, StringSchema, tool_parameters_schema
+from nanobot.core.config.paths import get_media_dir
 
 _IS_WINDOWS = sys.platform == "win32"
 

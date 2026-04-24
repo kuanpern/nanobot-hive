@@ -16,7 +16,7 @@ from unittest.mock import MagicMock, patch, AsyncMock
 
 import pytest
 
-from nanobot.agent.loop import AgentLoop
+from nanobot.agent.engine.loop import AgentLoop
 
 
 @pytest.fixture

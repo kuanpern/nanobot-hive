@@ -7,10 +7,10 @@ from pathlib import Path
 
 import pytest
 
-from nanobot.agent.loop import AgentLoop
+from nanobot.agent.engine.loop import AgentLoop
 from nanobot.bus.events import InboundMessage
 from nanobot.bus.queue import MessageBus
-from nanobot.config.schema import AgentDefaults
+from nanobot.core.config.schema import AgentDefaults
 from nanobot.command import CommandContext
 from nanobot.providers.base import LLMResponse
 

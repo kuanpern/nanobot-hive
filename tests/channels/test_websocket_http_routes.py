@@ -11,7 +11,7 @@ import httpx
 import pytest
 
 from nanobot.channels.websocket import WebSocketChannel
-from nanobot.session.manager import Session, SessionManager
+from nanobot.core.session.manager import Session, SessionManager
 
 _PORT = 29900
 

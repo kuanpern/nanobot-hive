@@ -10,9 +10,9 @@ from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 
-from nanobot.agent.loop import AgentLoop
+from nanobot.agent.engine.loop import AgentLoop
 from nanobot.agent.subagent import SubagentManager, SubagentStatus
-from nanobot.agent.tools.search import GlobTool, GrepTool
+from nanobot.tools.search import GlobTool, GrepTool
 from nanobot.bus.queue import MessageBus
 
 

@@ -11,7 +11,7 @@ from typing import Any
 import structlog
 logger = structlog.get_logger()
 
-from nanobot.config.paths import get_legacy_sessions_dir
+from ..config.paths import get_legacy_sessions_dir
 from nanobot.utils.helpers import ensure_dir, find_legal_message_start, safe_filename
 
 

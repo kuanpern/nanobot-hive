@@ -10,7 +10,7 @@ from typer.testing import CliRunner
 
 from nanobot.bus.events import OutboundMessage
 from nanobot.cli.commands import _make_provider, app
-from nanobot.config.schema import Config
+from nanobot.core.config.schema import Config
 from nanobot.cron.types import CronJob, CronPayload
 from nanobot.providers.openai_codex_provider import _strip_model_prefix
 from nanobot.providers.registry import find_by_name
@@ -371,7 +371,7 @@ def test_openai_compat_provider_passes_model_through():
 
 def test_make_provider_uses_github_copilot_backend():
     from nanobot.cli.commands import _make_provider
-    from nanobot.config.schema import Config
+    from nanobot.core.config.schema import Config
 
     config = Config.model_validate(
         {

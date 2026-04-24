@@ -6,9 +6,9 @@ import json
 import uuid
 from typing import Any
 
-from nanobot.agent.tools.base import tool_parameters
-from nanobot.agent.tools.schema import IntegerSchema, StringSchema, tool_parameters_schema
-from nanobot.agent.tools.filesystem import _FsTool
+from nanobot.tools.base import tool_parameters
+from nanobot.tools.schema import IntegerSchema, StringSchema, tool_parameters_schema
+from nanobot.tools.filesystem import _FsTool
 
 
 def _new_cell(source: str, cell_type: str = "code", generate_id: bool = False) -> dict:

@@ -11,18 +11,18 @@ from typing import Any
 import structlog
 logger = structlog.get_logger()
 
-from nanobot.agent.hook import AgentHook, AgentHookContext
+from nanobot.agent.engine.hook import AgentHook, AgentHookContext
 from nanobot.utils.prompt_templates import render_template
-from nanobot.agent.runner import AgentRunSpec, AgentRunner
+from nanobot.agent.engine.runner import AgentRunSpec, AgentRunner
 from nanobot.agent.skills import BUILTIN_SKILLS_DIR
-from nanobot.agent.tools.filesystem import EditFileTool, ListDirTool, ReadFileTool, WriteFileTool
-from nanobot.agent.tools.registry import ToolRegistry
-from nanobot.agent.tools.search import GlobTool, GrepTool
-from nanobot.agent.tools.shell import ExecTool
-from nanobot.agent.tools.web import WebFetchTool, WebSearchTool
+from nanobot.tools.filesystem import EditFileTool, ListDirTool, ReadFileTool, WriteFileTool
+from nanobot.tools.registry import ToolRegistry
+from nanobot.tools.search import GlobTool, GrepTool
+from nanobot.tools.shell import ExecTool
+from nanobot.tools.web import WebFetchTool, WebSearchTool
 from nanobot.agent.events import InboundMessage
-from nanobot.bus import MessageBus
-from nanobot.config.schema import ExecToolConfig, WebToolsConfig
+from nanobot.core.bus import MessageBus
+from nanobot.core.config.schema import ExecToolConfig, WebToolsConfig
 from nanobot.providers.base import LLMProvider
 
 

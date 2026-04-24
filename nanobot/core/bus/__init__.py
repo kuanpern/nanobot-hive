@@ -5,10 +5,10 @@ from __future__ import annotations
 import os
 
 from nanobot.agent.events import InboundMessage, OutboundMessage
-from nanobot.bus.redis_pubsub import RedisBus as MessageBus
+from .redis_pubsub import RedisBus as MessageBus
 
 try:
-    from nanobot.bus.asyncio_queue import MessageBus as AsyncioMessageBus
+    from .asyncio_queue import MessageBus as AsyncioMessageBus
 except Exception:  # pragma: no cover
     AsyncioMessageBus = None  # type: ignore[assignment,misc]
 

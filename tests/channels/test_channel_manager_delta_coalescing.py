@@ -8,7 +8,7 @@ from nanobot.bus.events import OutboundMessage
 from nanobot.bus.queue import MessageBus
 from nanobot.channels.base import BaseChannel
 from nanobot.channels.manager import ChannelManager
-from nanobot.config.schema import Config
+from nanobot.core.config.schema import Config
 
 
 class MockChannel(BaseChannel):

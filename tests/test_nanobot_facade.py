@@ -36,7 +36,7 @@ def test_from_config_creates_instance(tmp_path):
 
 
 def test_from_config_default_path():
-    from nanobot.config.schema import Config
+    from nanobot.core.config.schema import Config
 
     with patch("nanobot.config.loader.load_config") as mock_load, \
          patch("nanobot.nanobot._make_provider") as mock_prov:
@@ -69,7 +69,7 @@ async def test_run_returns_result(tmp_path):
 
 @pytest.mark.asyncio
 async def test_run_with_hooks(tmp_path):
-    from nanobot.agent.hook import AgentHook, AgentHookContext
+    from nanobot.agent.engine.hook import AgentHook, AgentHookContext
     from nanobot.bus.events import OutboundMessage
 
     config_path = _write_config(tmp_path)
@@ -95,7 +95,7 @@ async def test_run_hooks_restored_on_error(tmp_path):
     config_path = _write_config(tmp_path)
     bot = Nanobot.from_config(config_path, workspace=tmp_path)
 
-    from nanobot.agent.hook import AgentHook
+    from nanobot.agent.engine.hook import AgentHook
 
     bot._loop.process_direct = AsyncMock(side_effect=RuntimeError("boom"))
     original_hooks = bot._loop._extra_hooks
@@ -126,7 +126,7 @@ def test_workspace_override(tmp_path):
 
 
 def test_sdk_make_provider_uses_github_copilot_backend():
-    from nanobot.config.schema import Config
+    from nanobot.core.config.schema import Config
     from nanobot.nanobot import _make_provider
 
     config = Config.model_validate(

@@ -7,7 +7,7 @@ from typing import TYPE_CHECKING, Any, Awaitable, Callable
 
 if TYPE_CHECKING:
     from nanobot.agent.events import InboundMessage, OutboundMessage
-    from nanobot.session.manager import Session
+    from nanobot.core.session.manager import Session
 
 Handler = Callable[["CommandContext"], Awaitable["OutboundMessage | None"]]
 

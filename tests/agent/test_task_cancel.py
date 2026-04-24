@@ -9,14 +9,14 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
-from nanobot.config.schema import AgentDefaults
+from nanobot.core.config.schema import AgentDefaults
 
 _MAX_TOOL_RESULT_CHARS = AgentDefaults().max_tool_result_chars
 
 
 def _make_loop(*, exec_config=None):
     """Create a minimal AgentLoop with mocked dependencies."""
-    from nanobot.agent.loop import AgentLoop
+    from nanobot.agent.engine.loop import AgentLoop
     from nanobot.bus.queue import MessageBus
 
     bus = MessageBus()
@@ -103,7 +103,7 @@ class TestHandleStop:
 
 class TestDispatch:
     def test_exec_tool_not_registered_when_disabled(self):
-        from nanobot.config.schema import ExecToolConfig
+        from nanobot.core.config.schema import ExecToolConfig
 
         loop, _bus = _make_loop(exec_config=ExecToolConfig(enable=False))
 
@@ -286,7 +286,7 @@ class TestSubagentCancellation:
     async def test_subagent_exec_tool_not_registered_when_disabled(self, tmp_path):
         from nanobot.agent.subagent import SubagentManager
         from nanobot.bus.queue import MessageBus
-        from nanobot.config.schema import ExecToolConfig
+        from nanobot.core.config.schema import ExecToolConfig
 
         bus = MessageBus()
         provider = MagicMock()

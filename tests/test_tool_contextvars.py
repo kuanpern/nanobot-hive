@@ -4,9 +4,9 @@ import asyncio
 
 import pytest
 
-from nanobot.agent.tools.cron import CronTool
-from nanobot.agent.tools.message import MessageTool
-from nanobot.agent.tools.spawn import SpawnTool
+from nanobot.tools.cron import CronTool
+from nanobot.tools.message import MessageTool
+from nanobot.tools.spawn import SpawnTool
 from nanobot.cron.service import CronService
 
 

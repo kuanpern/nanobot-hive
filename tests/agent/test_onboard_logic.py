@@ -27,7 +27,7 @@ from nanobot.cli.onboard import (
     _validate_field_constraint,
     run_onboard,
 )
-from nanobot.config.schema import Config
+from nanobot.core.config.schema import Config
 from nanobot.utils.helpers import sync_workspace_templates
 
 
@@ -223,7 +223,7 @@ class TestGetFieldTypeInfo:
 
     def test_real_provider_retry_mode_field(self):
         """Validate against actual AgentDefaults.provider_retry_mode field."""
-        from nanobot.config.schema import AgentDefaults
+        from nanobot.core.config.schema import AgentDefaults
 
         type_name, inner = _get_field_type_info(AgentDefaults.model_fields["provider_retry_mode"])
         assert type_name == "literal"
@@ -640,7 +640,7 @@ class TestValidateFieldConstraint:
 
     def test_real_send_max_retries_field(self):
         """Validate against the actual ChannelsConfig.send_max_retries field."""
-        from nanobot.config.schema import ChannelsConfig
+        from nanobot.core.config.schema import ChannelsConfig
         from nanobot.cli.onboard import _validate_field_constraint
 
         field_info = ChannelsConfig.model_fields["send_max_retries"]
@@ -702,7 +702,7 @@ class TestGetConstraintHint:
 
     def test_real_send_max_retries_hint(self):
         """Actual ChannelsConfig.send_max_retries should show '(0-10)'."""
-        from nanobot.config.schema import ChannelsConfig
+        from nanobot.core.config.schema import ChannelsConfig
 
         field_info = ChannelsConfig.model_fields["send_max_retries"]
         hint = _get_constraint_hint(field_info)
@@ -820,7 +820,7 @@ class TestApiServerRegistration:
         from nanobot.cli.onboard import _SETTINGS_SETTER
 
         config = Config()
-        from nanobot.config.schema import ApiConfig
+        from nanobot.core.config.schema import ApiConfig
 
         new_api = ApiConfig(host="0.0.0.0", port=9999)
         _SETTINGS_SETTER["API Server"](config, new_api)

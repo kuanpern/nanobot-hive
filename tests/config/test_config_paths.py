@@ -1,6 +1,6 @@
 from pathlib import Path
 
-from nanobot.config.paths import (
+from nanobot.core.config.paths import (
     get_bridge_install_dir,
     get_cli_history_path,
     get_cron_dir,

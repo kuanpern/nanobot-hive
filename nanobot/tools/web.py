@@ -15,12 +15,12 @@ import structlog
 logger = structlog.get_logger()
 
 from nanobot.telemetry import record_metric, trace
-from nanobot.agent.tools.base import Tool, tool_parameters
-from nanobot.agent.tools.schema import IntegerSchema, StringSchema, tool_parameters_schema
+from nanobot.tools.base import Tool, tool_parameters
+from nanobot.tools.schema import IntegerSchema, StringSchema, tool_parameters_schema
 from nanobot.utils.helpers import build_image_content_blocks
 
 if TYPE_CHECKING:
-    from nanobot.config.schema import WebSearchConfig
+    from nanobot.core.config.schema import WebSearchConfig
 
 # Shared constants
 USER_AGENT = "Mozilla/5.0 (Macintosh; Intel Mac OS X 14_7_2) AppleWebKit/537.36"
@@ -93,7 +93,7 @@ class WebSearchTool(Tool):
     )
 
     def __init__(self, config: WebSearchConfig | None = None, proxy: str | None = None):
-        from nanobot.config.schema import WebSearchConfig
+        from nanobot.core.config.schema import WebSearchConfig
 
         self.config = config if config is not None else WebSearchConfig()
         self.proxy = proxy

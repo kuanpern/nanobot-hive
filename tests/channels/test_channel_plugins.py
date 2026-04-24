@@ -12,7 +12,7 @@ from nanobot.bus.events import OutboundMessage
 from nanobot.bus.queue import MessageBus
 from nanobot.channels.base import BaseChannel
 from nanobot.channels.manager import ChannelManager
-from nanobot.config.schema import ChannelsConfig
+from nanobot.core.config.schema import ChannelsConfig
 from nanobot.utils.restart import RestartNotice
 
 
@@ -302,7 +302,7 @@ def test_openai_transcription_provider_honors_api_base_argument():
 
 def test_channels_login_uses_discovered_plugin_class(monkeypatch):
     from nanobot.cli.commands import app
-    from nanobot.config.schema import Config
+    from nanobot.core.config.schema import Config
     from typer.testing import CliRunner
 
     runner = CliRunner()
@@ -330,7 +330,7 @@ def test_channels_login_uses_discovered_plugin_class(monkeypatch):
 
 def test_channels_login_sets_custom_config_path(monkeypatch, tmp_path):
     from nanobot.cli.commands import app
-    from nanobot.config.schema import Config
+    from nanobot.core.config.schema import Config
     from typer.testing import CliRunner
 
     runner = CliRunner()
@@ -359,7 +359,7 @@ def test_channels_login_sets_custom_config_path(monkeypatch, tmp_path):
 
 def test_channels_status_sets_custom_config_path(monkeypatch, tmp_path):
     from nanobot.cli.commands import app
-    from nanobot.config.schema import Config
+    from nanobot.core.config.schema import Config
     from typer.testing import CliRunner
 
     runner = CliRunner()

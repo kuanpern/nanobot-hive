@@ -20,7 +20,7 @@ from aiohttp import web
 import structlog
 logger = structlog.get_logger()
 
-from nanobot.config.paths import get_media_dir
+from nanobot.core.config.paths import get_media_dir
 from nanobot.utils.helpers import safe_filename
 from nanobot.utils.runtime import EMPTY_FINAL_RESPONSE_MESSAGE
 

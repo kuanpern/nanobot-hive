@@ -1,6 +1,6 @@
 """Tests for the MiniMax Anthropic provider registration."""
 
-from nanobot.config.schema import ProvidersConfig
+from nanobot.core.config.schema import ProvidersConfig
 from nanobot.providers.registry import PROVIDERS
 
 

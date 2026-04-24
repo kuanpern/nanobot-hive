@@ -4,7 +4,7 @@ import shlex
 
 import pytest
 
-from nanobot.agent.tools.sandbox import wrap_command
+from nanobot.tools.sandbox import wrap_command
 
 
 def _parse(cmd: str) -> list[str]:

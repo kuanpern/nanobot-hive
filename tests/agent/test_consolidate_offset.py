@@ -5,7 +5,7 @@ from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 from pathlib import Path
-from nanobot.session.manager import Session, SessionManager
+from nanobot.core.session.manager import Session, SessionManager
 
 # Test constants
 MEMORY_WINDOW = 50
@@ -485,7 +485,7 @@ class TestNewCommandArchival:
 
     @staticmethod
     def _make_loop(tmp_path: Path):
-        from nanobot.agent.loop import AgentLoop
+        from nanobot.agent.engine.loop import AgentLoop
         from nanobot.bus.queue import MessageBus
         from nanobot.providers.base import LLMResponse
 

@@ -6,7 +6,7 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
-from nanobot.agent.hook import AgentHook, AgentHookContext, CompositeHook
+from nanobot.agent.engine.hook import AgentHook, AgentHookContext, CompositeHook
 
 
 def _ctx() -> AgentHookContext:
@@ -267,7 +267,7 @@ async def test_composite_can_wrap_another_composite():
 
 
 def _make_loop(tmp_path, hooks=None):
-    from nanobot.agent.loop import AgentLoop
+    from nanobot.agent.engine.loop import AgentLoop
     from nanobot.bus.queue import MessageBus
 
     bus = MessageBus()

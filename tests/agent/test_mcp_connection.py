@@ -6,7 +6,7 @@ from unittest.mock import MagicMock
 
 import pytest
 
-from nanobot.agent.loop import AgentLoop
+from nanobot.agent.engine.loop import AgentLoop
 from nanobot.bus.queue import MessageBus
 
 

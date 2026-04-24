@@ -7,12 +7,12 @@ from datetime import datetime
 from typing import TYPE_CHECKING, Any, Callable, Coroutine
 
 import structlog
-from nanobot.session.manager import Session, SessionManager
+from nanobot.core.session.manager import Session, SessionManager
 
 logger = structlog.get_logger()
 
 if TYPE_CHECKING:
-    from nanobot.agent.memory import Consolidator
+    from nanobot.agent.memory.store import Consolidator
 
 
 class AutoCompact:

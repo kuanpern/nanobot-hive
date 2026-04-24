@@ -19,13 +19,13 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
-from nanobot.agent.loop import AgentLoop
+from nanobot.agent.engine.loop import AgentLoop
 from nanobot.bus.events import InboundMessage
 from nanobot.bus.queue import MessageBus
 from nanobot.command.builtin import cmd_new, register_builtin_commands
 from nanobot.command.router import CommandContext, CommandRouter
-from nanobot.config.schema import AgentDefaults, Config
-from nanobot.session.manager import Session, SessionManager
+from nanobot.core.config.schema import AgentDefaults, Config
+from nanobot.core.session.manager import Session, SessionManager
 
 
 # ---------------------------------------------------------------------------
@@ -187,7 +187,7 @@ class TestUnifiedSessionConfig:
 
     def test_onboard_generated_config_contains_unified_session(self, tmp_path: Path):
         """save_config() writes 'unifiedSession' into config.json (simulates nanobot onboard)."""
-        from nanobot.config.loader import save_config
+        from nanobot.core.config.loader import save_config
 
         config = Config()
         config_path = tmp_path / "config.json"
@@ -300,7 +300,7 @@ class TestConsolidationUnaffectedByUnifiedSession:
     @pytest.mark.asyncio
     async def test_consolidation_skips_empty_session_for_unified_key(self):
         """Empty unified:default session → consolidation exits immediately, archive not called."""
-        from nanobot.agent.memory import Consolidator, MemoryStore
+        from nanobot.agent.memory.store import Consolidator, MemoryStore
 
         store = MagicMock(spec=MemoryStore)
         mock_provider = MagicMock()
@@ -332,7 +332,7 @@ class TestConsolidationUnaffectedByUnifiedSession:
     async def test_consolidation_behaviour_identical_for_any_key(self):
         """archive call count is the same for 'telegram:123' and 'unified:default'
         under identical token conditions."""
-        from nanobot.agent.memory import Consolidator, MemoryStore
+        from nanobot.agent.memory.store import Consolidator, MemoryStore
 
         archive_calls: dict[str, int] = {}
 
@@ -366,7 +366,7 @@ class TestConsolidationUnaffectedByUnifiedSession:
     async def test_consolidation_triggers_when_over_budget_unified_key(self):
         """When tokens exceed budget, consolidation attempts to find a boundary —
         behaviour is identical to any other session key."""
-        from nanobot.agent.memory import Consolidator, MemoryStore
+        from nanobot.agent.memory.store import Consolidator, MemoryStore
 
         store = MagicMock(spec=MemoryStore)
         mock_provider = MagicMock()
@@ -414,7 +414,7 @@ class TestStopCommandWithUnifiedSession:
     @pytest.mark.asyncio
     async def test_active_tasks_use_effective_key_in_unified_mode(self, tmp_path: Path):
         """When unified_session=True, tasks are stored under UNIFIED_SESSION_KEY."""
-        from nanobot.agent.loop import UNIFIED_SESSION_KEY
+        from nanobot.agent.engine.loop import UNIFIED_SESSION_KEY
 
         loop = _make_loop(tmp_path, unified_session=True)
         
@@ -442,7 +442,7 @@ class TestStopCommandWithUnifiedSession:
     @pytest.mark.asyncio
     async def test_stop_command_finds_task_in_unified_mode(self, tmp_path: Path):
         """cmd_stop can cancel tasks when unified_session=True."""
-        from nanobot.agent.loop import UNIFIED_SESSION_KEY
+        from nanobot.agent.engine.loop import UNIFIED_SESSION_KEY
         from nanobot.command.builtin import cmd_stop
 
         loop = _make_loop(tmp_path, unified_session=True)
@@ -475,7 +475,7 @@ class TestStopCommandWithUnifiedSession:
     @pytest.mark.asyncio
     async def test_stop_command_cross_channel_in_unified_mode(self, tmp_path: Path):
         """In unified mode, /stop from one channel cancels tasks from another channel."""
-        from nanobot.agent.loop import UNIFIED_SESSION_KEY
+        from nanobot.agent.engine.loop import UNIFIED_SESSION_KEY
         from nanobot.command.builtin import cmd_stop
 
         loop = _make_loop(tmp_path, unified_session=True)

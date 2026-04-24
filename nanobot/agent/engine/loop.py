@@ -17,34 +17,34 @@ logger = structlog.get_logger()
 from nanobot.telemetry import record_metric, trace
 from nanobot.agent.autocompact import AutoCompact
 from nanobot.agent.context import ContextBuilder
-from nanobot.agent.hook import AgentHook, AgentHookContext, CompositeHook
-from nanobot.agent.memory import Consolidator, Dream
-from nanobot.agent.runner import _MAX_INJECTIONS_PER_TURN, AgentRunner, AgentRunSpec
+from nanobot.agent.engine.hook import AgentHook, AgentHookContext, CompositeHook
+from nanobot.agent.memory.store import Consolidator, Dream
+from nanobot.agent.engine.runner import _MAX_INJECTIONS_PER_TURN, AgentRunner, AgentRunSpec
 from nanobot.agent.skills import BUILTIN_SKILLS_DIR
 from nanobot.agent.subagent import SubagentManager
-from nanobot.agent.tools.cron import CronTool
-from nanobot.agent.tools.filesystem import EditFileTool, ListDirTool, ReadFileTool, WriteFileTool
-from nanobot.agent.tools.message import MessageTool
-from nanobot.agent.tools.notebook import NotebookEditTool
-from nanobot.agent.tools.registry import ToolRegistry
-from nanobot.agent.tools.search import GlobTool, GrepTool
-from nanobot.agent.tools.shell import ExecTool
-from nanobot.agent.tools.self import MyTool
-from nanobot.agent.tools.spawn import SpawnTool
-from nanobot.agent.tools.web import WebFetchTool, WebSearchTool
+from nanobot.tools.cron import CronTool
+from nanobot.tools.filesystem import EditFileTool, ListDirTool, ReadFileTool, WriteFileTool
+from nanobot.tools.message import MessageTool
+from nanobot.tools.notebook import NotebookEditTool
+from nanobot.tools.registry import ToolRegistry
+from nanobot.tools.search import GlobTool, GrepTool
+from nanobot.tools.shell import ExecTool
+from nanobot.tools.self import MyTool
+from nanobot.tools.spawn import SpawnTool
+from nanobot.tools.web import WebFetchTool, WebSearchTool
 from nanobot.agent.events import InboundMessage, OutboundMessage
-from nanobot.bus import MessageBus
+from nanobot.core.bus import MessageBus
 from nanobot.command import CommandContext, CommandRouter, register_builtin_commands
-from nanobot.config.schema import AgentDefaults
+from nanobot.core.config.schema import AgentDefaults
 from nanobot.providers.base import LLMProvider
-from nanobot.session.manager import Session, SessionManager
+from nanobot.core.session.manager import Session, SessionManager
 from nanobot.utils.document import extract_documents
 from nanobot.utils.helpers import image_placeholder_text
 from nanobot.utils.helpers import truncate_text as truncate_text_fn
 from nanobot.utils.runtime import EMPTY_FINAL_RESPONSE_MESSAGE
 
 if TYPE_CHECKING:
-    from nanobot.config.schema import ChannelsConfig, ExecToolConfig, ToolsConfig, WebToolsConfig
+    from nanobot.core.config.schema import ChannelsConfig, ExecToolConfig, ToolsConfig, WebToolsConfig
     from nanobot.cron import CronService
 
 
@@ -164,7 +164,7 @@ class AgentLoop:
         disabled_skills: list[str] | None = None,
         tools_config: ToolsConfig | None = None,
     ):
-        from nanobot.config.schema import ExecToolConfig, ToolsConfig, WebToolsConfig
+        from nanobot.core.config.schema import ExecToolConfig, ToolsConfig, WebToolsConfig
 
         _tc = tools_config or ToolsConfig()
         defaults = AgentDefaults()
@@ -301,7 +301,7 @@ class AgentLoop:
         if self._mcp_connected or self._mcp_connecting or not self._mcp_servers:
             return
         self._mcp_connecting = True
-        from nanobot.agent.tools.mcp import connect_mcp_servers
+        from nanobot.tools.mcp import connect_mcp_servers
 
         try:
             self._mcp_stacks = await connect_mcp_servers(self._mcp_servers, self.tools)

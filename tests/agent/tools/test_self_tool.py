@@ -9,7 +9,7 @@ from unittest.mock import AsyncMock, MagicMock
 import pytest
 from pydantic import BaseModel
 
-from nanobot.agent.tools.self import MyTool
+from nanobot.tools.self import MyTool
 
 
 # ---------------------------------------------------------------------------
@@ -690,7 +690,7 @@ class TestSubagentHookStatus:
     async def test_after_iteration_updates_status(self):
         """after_iteration should copy iteration, tool_events, usage to status."""
         from nanobot.agent.subagent import SubagentStatus, _SubagentHook
-        from nanobot.agent.hook import AgentHookContext
+        from nanobot.agent.engine.hook import AgentHookContext
 
         status = SubagentStatus(
             task_id="test",
@@ -717,7 +717,7 @@ class TestSubagentHookStatus:
     async def test_after_iteration_with_error(self):
         """after_iteration should set status.error when context has an error."""
         from nanobot.agent.subagent import SubagentStatus, _SubagentHook
-        from nanobot.agent.hook import AgentHookContext
+        from nanobot.agent.engine.hook import AgentHookContext
 
         status = SubagentStatus(
             task_id="test",
@@ -740,7 +740,7 @@ class TestSubagentHookStatus:
     async def test_after_iteration_no_status_is_noop(self):
         """after_iteration with no status should be a no-op."""
         from nanobot.agent.subagent import _SubagentHook
-        from nanobot.agent.hook import AgentHookContext
+        from nanobot.agent.engine.hook import AgentHookContext
 
         hook = _SubagentHook("test")
         context = AgentHookContext(iteration=1, messages=[])

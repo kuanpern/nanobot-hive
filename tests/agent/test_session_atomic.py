@@ -4,7 +4,7 @@ import json
 from datetime import datetime
 from pathlib import Path
 
-from nanobot.session.manager import Session, SessionManager
+from nanobot.core.session.manager import Session, SessionManager
 
 
 class TestAtomicSave:

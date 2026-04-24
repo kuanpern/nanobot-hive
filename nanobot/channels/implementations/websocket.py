@@ -26,14 +26,14 @@ from websockets.http11 import Request as WsRequest
 from websockets.http11 import Response
 
 from nanobot.agent.events import OutboundMessage
-from nanobot.bus import MessageBus
+from nanobot.core.bus import MessageBus
 from nanobot.channels.base import BaseChannel
-from nanobot.config.schema import Base
+from nanobot.core.config.schema import Base
 
 logger = structlog.get_logger()
 
 if TYPE_CHECKING:
-    from nanobot.session.manager import SessionManager
+    from nanobot.core.session.manager import SessionManager
 
 
 def _strip_trailing_slash(path: str) -> str:
@@ -126,7 +126,7 @@ def _http_json_response(data: dict[str, Any], *, status: int = 200) -> Response:
 def _read_webui_model_name() -> str | None:
     """Return the configured default model for readonly webui display."""
     try:
-        from nanobot.config.loader import load_config
+        from nanobot.core.config.loader import load_config
 
         model = load_config().agents.defaults.model.strip()
         return model or None

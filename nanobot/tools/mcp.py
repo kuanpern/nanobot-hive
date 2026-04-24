@@ -8,8 +8,8 @@ import httpx
 import structlog
 logger = structlog.get_logger()
 
-from nanobot.agent.tools.base import Tool
-from nanobot.agent.tools.registry import ToolRegistry
+from nanobot.tools.base import Tool
+from nanobot.tools.registry import ToolRegistry
 
 # Transient connection errors that warrant a single retry.
 # These typically happen when an MCP server restarts or a network
@@ -117,7 +117,7 @@ class MCPToolWrapper(Tool):
         return self._parameters
 
     async def execute(self, **kwargs: Any) -> str:
-        from mcp import types
+        from nanobot.tools.mcp import types
 
         for attempt in range(2):  # At most 1 retry
             try:
@@ -209,7 +209,7 @@ class MCPResourceWrapper(Tool):
         return True
 
     async def execute(self, **kwargs: Any) -> str:
-        from mcp import types
+        from nanobot.tools.mcp import types
 
         for attempt in range(2):
             try:
@@ -313,7 +313,7 @@ class MCPPromptWrapper(Tool):
         return True
 
     async def execute(self, **kwargs: Any) -> str:
-        from mcp import types
+        from nanobot.tools.mcp import types
         from mcp.shared.exceptions import McpError
 
         for attempt in range(2):
@@ -393,7 +393,7 @@ async def connect_mcp_servers(
     Each server gets its own stack and runs in its own task to prevent
     cancel scope conflicts when multiple MCP servers are configured.
     """
-    from mcp import ClientSession, StdioServerParameters
+    from nanobot.tools.mcp import ClientSession, StdioServerParameters
     from mcp.client.sse import sse_client
     from mcp.client.stdio import stdio_client
     from mcp.client.streamable_http import streamable_http_client

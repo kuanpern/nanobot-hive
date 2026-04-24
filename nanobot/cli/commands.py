@@ -47,8 +47,8 @@ class SafeFileHistory(FileHistory):
         safe = string.encode("utf-8", errors="surrogateescape").decode("utf-8", errors="replace")
         super().store_string(safe)
 from nanobot.cli.stream import StreamRenderer, ThinkingSpinner
-from nanobot.config.paths import get_workspace_path, is_default_workspace
-from nanobot.config.schema import Config
+from nanobot.core.config.paths import get_workspace_path, is_default_workspace
+from nanobot.core.config.schema import Config
 from nanobot.utils.helpers import sync_workspace_templates
 from nanobot.utils.logging_setup import configure_logging
 from nanobot.utils.restart import (
@@ -129,7 +129,7 @@ def _init_prompt_session() -> None:
     except Exception:
         pass
 
-    from nanobot.config.paths import get_cli_history_path
+    from nanobot.core.config.paths import get_cli_history_path
 
     history_file = get_cli_history_path()
     history_file.parent.mkdir(parents=True, exist_ok=True)
@@ -277,8 +277,8 @@ def onboard(
     wizard: bool = typer.Option(False, "--wizard", help="Use interactive wizard"),
 ):
     """Initialize nanobot configuration and workspace."""
-    from nanobot.config.loader import get_config_path, load_config, save_config, set_config_path
-    from nanobot.config.schema import Config
+    from nanobot.core.config.loader import get_config_path, load_config, save_config, set_config_path
+    from nanobot.core.config.schema import Config
 
     if config:
         config_path = Path(config).expanduser().resolve()
@@ -482,7 +482,7 @@ def _make_provider(config: Config):
 
 def _load_runtime_config(config: str | None = None, workspace: str | None = None) -> Config:
     """Load config and optionally override the active workspace."""
-    from nanobot.config.loader import load_config, resolve_config_env_vars, set_config_path
+    from nanobot.core.config.loader import load_config, resolve_config_env_vars, set_config_path
 
     config_path = None
     if config:
@@ -508,7 +508,7 @@ def _warn_deprecated_config_keys(config_path: Path | None) -> None:
     """Hint users to remove obsolete keys from their config file."""
     import json
 
-    from nanobot.config.loader import get_config_path
+    from nanobot.core.config.loader import get_config_path
 
     path = config_path or get_config_path()
     try:
@@ -524,7 +524,7 @@ def _warn_deprecated_config_keys(config_path: Path | None) -> None:
 
 def _migrate_cron_store(config: "Config") -> None:
     """One-time migration: move legacy global cron store into the workspace."""
-    from nanobot.config.paths import get_cron_dir
+    from nanobot.core.config.paths import get_cron_dir
 
     legacy_path = get_cron_dir() / "jobs.json"
     new_path = config.workspace_path / "cron" / "jobs.json"
@@ -556,10 +556,10 @@ def serve(
         console.print("[red]aiohttp is required. Install with: pip install 'nanobot-ai[api]'[/red]")
         raise typer.Exit(1)
 
-    from nanobot.agent.loop import AgentLoop
+    from nanobot.agent.engine.loop import AgentLoop
     from nanobot.api.server import create_app
-    from nanobot.bus import get_bus
-    from nanobot.session.manager import SessionManager
+    from nanobot.core.bus import get_bus
+    from nanobot.core.session.manager import SessionManager
 
     configure_logging(verbose=verbose)
 
@@ -650,13 +650,13 @@ def _run_gateway(
     open_browser_url: str | None = None,
 ) -> None:
     """Shared gateway runtime; ``open_browser_url`` opens a tab once channels are up."""
-    from nanobot.agent.loop import AgentLoop
-    from nanobot.bus import get_bus
+    from nanobot.agent.engine.loop import AgentLoop
+    from nanobot.core.bus import get_bus
     from nanobot.channels.manager import ChannelManager
     from nanobot.cron import CronService
     from nanobot.cron.types import CronJob
     from nanobot.heartbeat.service import HeartbeatService
-    from nanobot.session.manager import SessionManager
+    from nanobot.core.session.manager import SessionManager
 
     port = port if port is not None else config.gateway.port
 
@@ -711,8 +711,8 @@ def _run_gateway(
                 logger.exception("Dream cron job failed")
             return None
 
-        from nanobot.agent.tools.cron import CronTool
-        from nanobot.agent.tools.message import MessageTool
+        from nanobot.tools.cron import CronTool
+        from nanobot.tools.message import MessageTool
         from nanobot.utils.evaluator import evaluate_response
 
         reminder_note = (
@@ -1026,8 +1026,8 @@ def agent(
     logs: bool = typer.Option(False, "--logs/--no-logs", help="Show nanobot runtime logs during chat"),
 ):
     """Interact with the agent directly."""
-    from nanobot.agent.loop import AgentLoop
-    from nanobot.bus import get_bus
+    from nanobot.agent.engine.loop import AgentLoop
+    from nanobot.core.bus import get_bus
     from nanobot.cron import CronService
 
     config = _load_runtime_config(config, workspace)
@@ -1261,7 +1261,7 @@ def channels_status(
 ):
     """Show channel status."""
     from nanobot.channels.registry import discover_all
-    from nanobot.config.loader import load_config, set_config_path
+    from nanobot.core.config.loader import load_config, set_config_path
 
     resolved_config_path = Path(config_path).expanduser().resolve() if config_path else None
     if resolved_config_path is not None:
@@ -1295,7 +1295,7 @@ def _get_bridge_dir() -> Path:
     import subprocess
 
     # User's bridge location
-    from nanobot.config.paths import get_bridge_install_dir
+    from nanobot.core.config.paths import get_bridge_install_dir
 
     user_bridge = get_bridge_install_dir()
 
@@ -1358,7 +1358,7 @@ def channels_login(
 ):
     """Authenticate with a channel via QR code or other interactive login."""
     from nanobot.channels.registry import discover_all
-    from nanobot.config.loader import load_config, set_config_path
+    from nanobot.core.config.loader import load_config, set_config_path
 
     resolved_config_path = Path(config_path).expanduser().resolve() if config_path else None
     if resolved_config_path is not None:
@@ -1397,7 +1397,7 @@ app.add_typer(plugins_app, name="plugins")
 def plugins_list():
     """List all discovered channels (built-in and plugins)."""
     from nanobot.channels.registry import discover_all, discover_channel_names
-    from nanobot.config.loader import load_config
+    from nanobot.core.config.loader import load_config
 
     config = load_config()
     builtin_names = set(discover_channel_names())
@@ -1435,7 +1435,7 @@ def plugins_list():
 @app.command()
 def status():
     """Show nanobot status."""
-    from nanobot.config.loader import get_config_path, load_config
+    from nanobot.core.config.loader import get_config_path, load_config
 
     config_path = get_config_path()
     config = load_config()

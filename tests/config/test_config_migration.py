@@ -2,7 +2,7 @@ import json
 import socket
 from unittest.mock import patch
 
-from nanobot.config.loader import load_config, save_config
+from nanobot.core.config.loader import load_config, save_config
 from nanobot.security.network import validate_url_target
 
 

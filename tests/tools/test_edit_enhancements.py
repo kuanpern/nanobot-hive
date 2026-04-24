@@ -3,8 +3,8 @@
 
 import pytest
 
-from nanobot.agent.tools.filesystem import EditFileTool, ReadFileTool, WriteFileTool
-from nanobot.agent.tools import file_state
+from nanobot.tools.filesystem import EditFileTool, ReadFileTool, WriteFileTool
+from nanobot.tools import file_state
 
 
 # ---------------------------------------------------------------------------

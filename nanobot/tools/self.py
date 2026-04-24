@@ -9,10 +9,10 @@ import structlog
 logger = structlog.get_logger()
 
 from nanobot.agent.subagent import SubagentStatus
-from nanobot.agent.tools.base import Tool
+from nanobot.tools.base import Tool
 
 if TYPE_CHECKING:
-    from nanobot.agent.loop import AgentLoop
+    from nanobot.agent.engine.loop import AgentLoop
 
 
 def _has_real_attr(obj: Any, key: str) -> bool:

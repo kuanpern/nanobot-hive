@@ -5,8 +5,8 @@ from datetime import datetime
 from typing import Any
 
 from nanobot.telemetry import trace
-from nanobot.agent.tools.base import Tool, tool_parameters
-from nanobot.agent.tools.schema import (
+from nanobot.tools.base import Tool, tool_parameters
+from nanobot.tools.schema import (
     BooleanSchema,
     IntegerSchema,
     StringSchema,
