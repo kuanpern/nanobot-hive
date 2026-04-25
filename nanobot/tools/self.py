@@ -10,6 +10,9 @@ logger = structlog.get_logger()
 
 from nanobot.agent.subagent import SubagentStatus
 from nanobot.tools.base import Tool
+from langchain_core.tools import BaseTool
+from pydantic import BaseModel, Field, model_validator
+
 
 if TYPE_CHECKING:
     from nanobot.agent.engine.loop import AgentLoop
