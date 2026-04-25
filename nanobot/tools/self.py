@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import time
+import json
 from typing import TYPE_CHECKING, Any
 
 import structlog
@@ -292,19 +293,18 @@ class MyTool(BaseTool):
     # Action dispatch
     # ------------------------------------------------------------------
 
-    async def _arun(
-        self,
-        action: str,
-        key: str | None = None,
-        value: Any = None,
-        **_kwargs: Any,
-    ) -> str:
+    async def _arun(self, action: str, key: str | None = None, value: Any = None) -> str:
         if action in ("inspect", "check"):
             return self._inspect(key)
+        
         if not self._modify_allowed:
-            return "Error: set is disabled (tools.my.allow_set is false)"
+            return "Error: set is disabled."
+            
         if action in ("modify", "set"):
-            return self._modify(key, value)
+            # Instead of modifying loop, we signal the Graph to modify the state
+            # We return a specific protocol that the update_scratchpad_node parses
+            return f"PROTOCOL_SET_STATE:{key}:{json.dumps(value)}"
+            
         return f"Unknown action: {action}"
 
     # -- inspect --
@@ -353,36 +353,12 @@ class MyTool(BaseTool):
 
     # -- modify --
 
-    def _modify(self, key: str | None, value: Any) -> str:
-        if err := self._validate_key(key):
-            return err
-        top = key.split(".")[0]
-        if top in self.BLOCKED or top in self._DENIED_ATTRS or top.startswith("__") or top.lower() in self._SENSITIVE_NAMES:
-            self._audit("modify", f"BLOCKED {key}")
-            return f"Error: '{key}' is protected and cannot be modified"
-        if top in self.READ_ONLY:
-            self._audit("modify", f"READ_ONLY {key}")
-            return f"Error: '{key}' is read-only and cannot be modified"
-        if "." in key:
-            parent_path, leaf = key.rsplit(".", 1)
-            if leaf in self._DENIED_ATTRS or leaf.startswith("__"):
-                self._audit("modify", f"BLOCKED leaf '{leaf}'")
-                return f"Error: '{leaf}' is not accessible"
-            if leaf.lower() in self._SENSITIVE_NAMES:
-                self._audit("modify", f"BLOCKED sensitive leaf '{leaf}'")
-                return f"Error: '{leaf}' is not accessible"
-            parent, err = self._resolve_path(parent_path)
-            if err:
-                return f"Error: {err}"
-            if isinstance(parent, dict):
-                parent[leaf] = value
-            else:
-                setattr(parent, leaf, value)
-            self._audit("modify", f"{key} = {value!r}")
-            return f"Set {key} = {value!r}"
-        if key in self.RESTRICTED:
-            return self._modify_restricted(key, value)
-        return self._modify_free(key, value)
+    def _modify(self, key: str, value: Any) -> str:
+        # Instead of modifying self._loop._runtime_vars, 
+        # we would ideally use a custom tool that interacts with the graph state.
+        # For now, if you need to keep runtime_vars, ensure it's a reference 
+        # that the graph nodes can access.
+        pass 
 
     def _modify_restricted(self, key: str, value: Any) -> str:
         spec = self.RESTRICTED[key]
