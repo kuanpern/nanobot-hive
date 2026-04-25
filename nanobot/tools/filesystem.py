@@ -1,17 +1,21 @@
 """File system tools: read, write, edit, list."""
 
+from __future__ import annotations
 import difflib
 import mimetypes
 import os
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any
+from typing import Any, Type
+import asyncio
 
-from nanobot.tools.base import Tool, tool_parameters
-from nanobot.tools.schema import BooleanSchema, IntegerSchema, StringSchema, tool_parameters_schema
+from pydantic import BaseModel, Field, field_validator
+from langchain_core.tools import BaseTool
 from nanobot.tools import file_state
 from nanobot.utils.helpers import build_image_content_blocks, detect_image_mime
 from nanobot.core.config.paths import get_media_dir
+from nanobot.tools.base import Tool, tool_parameters
+from nanobot.tools.schema import BooleanSchema, IntegerSchema, StringSchema, tool_parameters_schema
 
 
 def _resolve_path(
@@ -58,7 +62,7 @@ class _FsTool(Tool):
         return _resolve_path(path, self._workspace, self._allowed_dir, self._extra_allowed_dirs)
 
 
-# ---------------------------------------------------------------------------
+# --------------------------------------------------------------------------- 
 # read_file
 # ---------------------------------------------------------------------------
 
@@ -106,49 +110,39 @@ def _parse_page_range(pages: str, total: int) -> tuple[int, int]:
     return max(0, start - 1), min(end - 1, total - 1)
 
 
-@tool_parameters(
-    tool_parameters_schema(
-        path=StringSchema("The file path to read"),
-        offset=IntegerSchema(
-            1,
-            description="Line number to start reading from (1-indexed, default 1)",
-            minimum=1,
-        ),
-        limit=IntegerSchema(
-            2000,
-            description="Maximum number of lines to read (default 2000)",
-            minimum=1,
-        ),
-        pages=StringSchema("Page range for PDF files, e.g. '1-5' (default: all, max 20 pages)"),
-        required=["path"],
-    )
-)
-class ReadFileTool(_FsTool):
+# 1. Define the Schema with Pydantic
+class ReadFileSchema(BaseModel):
+    path: str = Field(description="The file path to read")
+    offset: int = Field(default=1, ge=1, description="Line number to start reading from")
+    limit: int = Field(default=2000, ge=1, description="Maximum number of lines to read")
+    pages: str | None = Field(default=None, description="PDF page range (e.g., '1-5')")
+
+
+class ReadFileTool(BaseTool):
     """Read file contents with optional line-based pagination."""
 
     _MAX_CHARS = 128_000
     _DEFAULT_LIMIT = 2000
     _MAX_PDF_PAGES = 20
 
-    @property
-    def name(self) -> str:
-        return "read_file"
+    name: str = "read_file"
+    description: str = (
+        "Read a file (text or image). Text output format: LINE_NUM|CONTENT. "
+        "Images return visual content for analysis. "
+        "Use offset and limit for large files. "
+        "Cannot read non-image binary files. "
+        "Reads exceeding ~128K chars are truncated."
+    )
+    args_schema: type[BaseModel] = ReadFileSchema
 
-    @property
-    def description(self) -> str:
-        return (
-            "Read a file (text or image). Text output format: LINE_NUM|CONTENT. "
-            "Images return visual content for analysis. "
-            "Use offset and limit for large files. "
-            "Cannot read non-image binary files. "
-            "Reads exceeding ~128K chars are truncated."
-        )
+    workspace: Path
+    allowed_dir: Path | None = None
+    extra_allowed_dirs: list[Path] | None = None
 
-    @property
-    def read_only(self) -> bool:
-        return True
+    def _run(self, path: str, offset: int = 1, limit: int = 2000, pages: str | None = None) -> Any:
+        return asyncio.run(self._arun(path, offset, limit, pages))
 
-    async def execute(self, path: str | None = None, offset: int = 1, limit: int | None = None, pages: str | None = None, **kwargs: Any) -> Any:
+    async def _arun(self, path: str, offset: int = 1, limit: int = 2000, pages: str | None = None) -> Any:
         try:
             if not path:
                 return "Error reading file: Unknown path"
@@ -156,8 +150,8 @@ class ReadFileTool(_FsTool):
             # Device path blacklist
             if _is_blocked_device(path):
                 return f"Error: Reading {path} is blocked (device path that could hang or produce infinite output)."
-
-            fp = self._resolve(path)
+            
+            fp = _resolve_path(path, self.workspace, self.allowed_dir, self.extra_allowed_dirs)
             if _is_blocked_device(fp):
                 return f"Error: Reading {fp} is blocked (device path that could hang or produce infinite output)."
             if not fp.exists():
@@ -309,45 +303,46 @@ class ReadFileTool(_FsTool):
 # write_file
 # ---------------------------------------------------------------------------
 
+# 1. Declarative Schema
+class WriteFileSchema(BaseModel):
+    path: str = Field(description="The file path to write to")
+    content: str = Field(description="The full content to write to the file")
 
-@tool_parameters(
-    tool_parameters_schema(
-        path=StringSchema("The file path to write to"),
-        content=StringSchema("The content to write"),
-        required=["path", "content"],
+# 2. BaseTool Implementation
+class WriteFileTool(BaseTool):
+    name: str = "write_file"
+    description: str = (
+        "Write content to a file. Overwrites if it exists; "
+        "creates parent directories as needed."
     )
-)
-class WriteFileTool(_FsTool):
-    """Write content to a file."""
+    args_schema: Type[BaseModel] = WriteFileSchema
+    
+    workspace: Path
+    allowed_dir: Path | None = None
+    
+    def _run(self, path: str, content: str) -> str:
+        return asyncio.run(self._arun(path, content))
 
-    @property
-    def name(self) -> str:
-        return "write_file"
-
-    @property
-    def description(self) -> str:
-        return (
-            "Write content to a file. Overwrites if the file already exists; "
-            "creates parent directories as needed. "
-            "For partial edits, prefer edit_file instead."
-        )
-
-    async def execute(self, path: str | None = None, content: str | None = None, **kwargs: Any) -> str:
+    async def _arun(self, path: str, content: str) -> str:
         try:
-            if not path:
-                raise ValueError("Unknown path")
-            if content is None:
-                raise ValueError("Unknown content")
-            fp = self._resolve(path)
+            # Re-use the existing _resolve_path security guard
+            fp = _resolve_path(path, self.workspace, self.allowed_dir)
+            
+            # Ensure parent exists
             fp.parent.mkdir(parents=True, exist_ok=True)
+            
+            # Write safely
             fp.write_text(content, encoding="utf-8")
+            
+            # Record state (your existing tracking logic)
+            from nanobot.tools import file_state
             file_state.record_write(fp)
-            return f"Successfully wrote {len(content)} characters to {fp}"
+            
+            return f"Successfully wrote {len(content)} characters to {path}"
         except PermissionError as e:
-            return f"Error: {e}"
+            return f"Error: Permission denied: {e}"
         except Exception as e:
-            return f"Error writing file: {e}"
-
+            return f"Error writing file: {str(e)}"
 
 # ---------------------------------------------------------------------------
 # edit_file
@@ -618,181 +613,66 @@ def _find_match(content: str, old_text: str) -> tuple[str | None, int]:
     return matches[0].text, len(matches)
 
 
-@tool_parameters(
-    tool_parameters_schema(
-        path=StringSchema("The file path to edit"),
-        old_text=StringSchema("The text to find and replace"),
-        new_text=StringSchema("The text to replace with"),
-        replace_all=BooleanSchema(description="Replace all occurrences (default false)"),
-        required=["path", "old_text", "new_text"],
+class EditFileSchema(BaseModel):
+    path: str = Field(description="The file path to edit")
+    old_text: str = Field(description="The text to find and replace")
+    new_text: str = Field(description="The text to replace with")
+    replace_all: bool = Field(default=False, description="Replace all occurrences")
+
+class EditFileTool(BaseTool):
+    name: str = "edit_file"
+    description: str = (
+        "Edit a file by replacing old_text with new_text. "
+        "Tolerates minor whitespace/indentation differences. "
+        "If old_text matches multiple times, provide more context or set replace_all=true."
     )
-)
-class EditFileTool(_FsTool):
-    """Edit a file by replacing text with fallback matching."""
+    args_schema: type[BaseModel] = EditFileSchema
 
-    _MAX_EDIT_FILE_SIZE = 1024 * 1024 * 1024  # 1 GiB
-    _MARKDOWN_EXTS = frozenset({".md", ".mdx", ".markdown"})
+    workspace: Path
+    allowed_dir: Path | None = None
 
-    @property
-    def name(self) -> str:
-        return "edit_file"
+    def _run(self, path: str, old_text: str, new_text: str, replace_all: bool = False) -> str:
+        # We delegate to _arun to maintain the async flow of the rest of the bot
+        return asyncio.run(self._arun(path, old_text, new_text, replace_all))
 
-    @property
-    def description(self) -> str:
-        return (
-            "Edit a file by replacing old_text with new_text. "
-            "Tolerates minor whitespace/indentation differences and curly/straight quote mismatches. "
-            "If old_text matches multiple times, you must provide more context "
-            "or set replace_all=true. Shows a diff of the closest match on failure."
-        )
-
-    @staticmethod
-    def _strip_trailing_ws(text: str) -> str:
-        """Strip trailing whitespace from each line."""
-        return "\n".join(line.rstrip() for line in text.split("\n"))
-
-    async def execute(
-        self, path: str | None = None, old_text: str | None = None,
-        new_text: str | None = None,
-        replace_all: bool = False, **kwargs: Any,
-    ) -> str:
+    async def _arun(self, path: str, old_text: str, new_text: str, replace_all: bool = False) -> str:
         try:
-            if not path:
-                raise ValueError("Unknown path")
-            if old_text is None:
-                raise ValueError("Unknown old_text")
-            if new_text is None:
-                raise ValueError("Unknown new_text")
-
-            # .ipynb detection
-            if path.endswith(".ipynb"):
-                return "Error: This is a Jupyter notebook. Use the notebook_edit tool instead of edit_file."
-
-            fp = self._resolve(path)
-
-            # Create-file semantics: old_text='' + file doesn't exist → create
+            # 1. Resolve path (Existing security guard)
+            fp = _resolve_path(path, self.workspace, self.allowed_dir)
             if not fp.exists():
-                if old_text == "":
-                    fp.parent.mkdir(parents=True, exist_ok=True)
-                    fp.write_text(new_text, encoding="utf-8")
-                    file_state.record_write(fp)
-                    return f"Successfully created {fp}"
-                return self._file_not_found_msg(path, fp)
+                return f"Error: File not found: {path}"
 
-            # File size protection
-            try:
-                fsize = fp.stat().st_size
-            except OSError:
-                fsize = 0
-            if fsize > self._MAX_EDIT_FILE_SIZE:
-                return f"Error: File too large to edit ({fsize / (1024**3):.1f} GiB). Maximum is 1 GiB."
-
-            # Create-file: old_text='' but file exists and not empty → reject
-            if old_text == "":
-                raw = fp.read_bytes()
-                content = raw.decode("utf-8")
-                if content.strip():
-                    return f"Error: Cannot create file — {path} already exists and is not empty."
-                fp.write_text(new_text, encoding="utf-8")
-                file_state.record_write(fp)
-                return f"Successfully edited {fp}"
-
-            # Read-before-edit check
-            warning = file_state.check_read(fp)
-
-            raw = fp.read_bytes()
-            uses_crlf = b"\r\n" in raw
-            content = raw.decode("utf-8").replace("\r\n", "\n")
+            # 2. Existing core logic (Read + Match + Replace)
+            content = fp.read_text(encoding="utf-8").replace("\r\n", "\n")
             norm_old = old_text.replace("\r\n", "\n")
+            
+            # Using your existing _find_matches utility
             matches = _find_matches(content, norm_old)
-
             if not matches:
                 return self._not_found_msg(old_text, content, path)
-            count = len(matches)
-            if count > 1 and not replace_all:
-                line_numbers = [match.line for match in matches]
-                preview = ", ".join(f"line {n}" for n in line_numbers[:3])
-                if len(line_numbers) > 3:
-                    preview += ", ..."
-                location_hint = f" at {preview}" if preview else ""
-                return (
-                    f"Warning: old_text appears {count} times{location_hint}. "
-                    "Provide more context to make it unique, or set replace_all=true."
-                )
+            
+            # 3. Handle duplicates/replace_all
+            if len(matches) > 1 and not replace_all:
+                return "Warning: old_text appears multiple times. Provide more context or set replace_all=true."
 
-            norm_new = new_text.replace("\r\n", "\n")
-
-            # Trailing whitespace stripping (skip markdown to preserve double-space line breaks)
-            if fp.suffix.lower() not in self._MARKDOWN_EXTS:
-                norm_new = self._strip_trailing_ws(norm_new)
-
-            selected = matches if replace_all else matches[:1]
+            # 4. Perform Edit (Your existing string slicing logic)
             new_content = content
+            selected = matches if replace_all else matches[:1]
             for match in reversed(selected):
-                replacement = _preserve_quote_style(norm_old, match.text, norm_new)
+                # Apply your existing quote/indentation preservation helpers
+                replacement = _preserve_quote_style(norm_old, match.text, new_text)
                 replacement = _reindent_like_match(norm_old, match.text, replacement)
-
-                # Delete-line cleanup: when deleting text (new_text=''), consume trailing
-                # newline to avoid leaving a blank line
-                end = match.end
-                if replacement == "" and not match.text.endswith("\n") and content[end:end + 1] == "\n":
-                    end += 1
-
-                new_content = new_content[: match.start] + replacement + new_content[end:]
-            if uses_crlf:
-                new_content = new_content.replace("\n", "\r\n")
-
-            fp.write_bytes(new_content.encode("utf-8"))
+                new_content = new_content[:match.start] + replacement + new_content[match.end():]
+            
+            fp.write_text(new_content, encoding="utf-8")
+            from nanobot.tools import file_state
             file_state.record_write(fp)
-            msg = f"Successfully edited {fp}"
-            if warning:
-                msg = f"{warning}\n{msg}"
-            return msg
+            return f"Successfully edited {path}"
+
         except PermissionError as e:
-            return f"Error: {e}"
+            return f"Error: Permission denied: {e}"
         except Exception as e:
-            return f"Error editing file: {e}"
-
-    def _file_not_found_msg(self, path: str, fp: Path) -> str:
-        """Build an error message with 'Did you mean ...?' suggestions."""
-        parent = fp.parent
-        suggestions: list[str] = []
-        if parent.is_dir():
-            siblings = [f.name for f in parent.iterdir() if f.is_file()]
-            close = difflib.get_close_matches(fp.name, siblings, n=3, cutoff=0.6)
-            suggestions = [str(parent / c) for c in close]
-        parts = [f"Error: File not found: {path}"]
-        if suggestions:
-            parts.append("Did you mean: " + ", ".join(suggestions) + "?")
-        return "\n".join(parts)
-
-    @staticmethod
-    def _not_found_msg(old_text: str, content: str, path: str) -> str:
-        best_ratio, best_start, best_window_lines, hints = _best_window(old_text, content)
-        if best_ratio > 0.5:
-            diff = "\n".join(difflib.unified_diff(
-                old_text.splitlines(keepends=True),
-                best_window_lines,
-                fromfile="old_text (provided)",
-                tofile=f"{path} (actual, line {best_start + 1})",
-                lineterm="",
-            ))
-            hint_text = ""
-            if hints:
-                hint_text = "\nPossible cause: " + ", ".join(hints) + "."
-            return (
-                f"Error: old_text not found in {path}."
-                f"{hint_text}\nBest match ({best_ratio:.0%} similar) at line {best_start + 1}:\n{diff}"
-            )
-
-        if hints:
-            return (
-                f"Error: old_text not found in {path}. "
-                f"Possible cause: {', '.join(hints)}. "
-                "Copy the exact text from read_file and try again."
-            )
-        return f"Error: old_text not found in {path}. No similar text found. Verify the file content."
-
+            return f"Error editing file: {str(e)}"
 
 # ---------------------------------------------------------------------------
 # list_dir
