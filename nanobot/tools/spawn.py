@@ -2,22 +2,20 @@
 
 from contextvars import ContextVar
 from typing import TYPE_CHECKING, Any
-
-from nanobot.tools.base import Tool, tool_parameters
-from nanobot.tools.schema import StringSchema, tool_parameters_schema
+from langchain_core.tools import BaseTool
+from pydantic import BaseModel, Field
 
 if TYPE_CHECKING:
     from nanobot.agent.subagent import SubagentManager
 
 
-@tool_parameters(
-    tool_parameters_schema(
-        task=StringSchema("The task for the subagent to complete"),
-        label=StringSchema("Optional short label for the task (for display)"),
-        required=["task"],
-    )
-)
-class SpawnTool(Tool):
+class SpawnToolSchema(BaseModel):
+    """Input schema for SpawnTool."""
+    task: str = Field(description="The task for the subagent to complete")
+    label: str | None = Field(default=None, description="Optional short label for the task (for display)")
+
+
+class SpawnTool(BaseTool):
     """Tool to spawn a subagent for background task execution."""
 
     def __init__(self, manager: "SubagentManager"):
@@ -25,6 +23,7 @@ class SpawnTool(Tool):
         self._origin_channel: ContextVar[str] = ContextVar("spawn_origin_channel", default="cli")
         self._origin_chat_id: ContextVar[str] = ContextVar("spawn_origin_chat_id", default="direct")
         self._session_key: ContextVar[str] = ContextVar("spawn_session_key", default="cli:direct")
+        super().__init__()
 
     def set_context(self, channel: str, chat_id: str, effective_key: str | None = None) -> None:
         """Set the origin context for subagent announcements."""
@@ -45,8 +44,9 @@ class SpawnTool(Tool):
             "For deliverables or existing projects, inspect the workspace first "
             "and use a dedicated subdirectory when helpful."
         )
+    args_schema: type[BaseModel] = SpawnToolSchema
 
-    async def execute(self, task: str, label: str | None = None, **kwargs: Any) -> str:
+    async def _arun(self, task: str, label: str | None = None) -> str:
         """Spawn a subagent to execute the given task."""
         return await self._manager.spawn(
             task=task,

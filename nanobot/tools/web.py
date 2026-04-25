@@ -15,8 +15,8 @@ import structlog
 logger = structlog.get_logger()
 
 from nanobot.telemetry import record_metric, trace
-from nanobot.tools.base import Tool, tool_parameters
-from nanobot.tools.schema import IntegerSchema, StringSchema, tool_parameters_schema
+from langchain_core.tools import BaseTool
+from pydantic import BaseModel, Field
 from nanobot.utils.helpers import build_image_content_blocks
 
 if TYPE_CHECKING:
@@ -75,15 +75,21 @@ def _format_results(query: str, items: list[dict[str, Any]], n: int) -> str:
     return "\n".join(lines)
 
 
-@tool_parameters(
-    tool_parameters_schema(
-        query=StringSchema("Search query"),
-        count=IntegerSchema(1, description="Results (1-10)", minimum=1, maximum=10),
-        required=["query"],
-    )
-)
-class WebSearchTool(Tool):
+class WebSearchToolSchema(BaseModel):
+    """Input schema for WebSearchTool."""
+    query: str = Field(description="Search query")
+    count: int = Field(default=1, description="Results (1-10)", ge=1, le=10)
+
+
+class WebSearchTool(BaseTool):
     """Search the web using configured provider."""
+    name: str = "web_search"
+    description: str = (
+        "Search the web. Returns titles, URLs, and snippets. "
+        "count defaults to 5 (max 10). "
+        "Use web_fetch to read a specific page in full."
+    )
+    args_schema: type[BaseModel] = WebSearchToolSchema
 
     name = "web_search"
     description = (
@@ -94,7 +100,7 @@ class WebSearchTool(Tool):
 
     def __init__(self, config: WebSearchConfig | None = None, proxy: str | None = None):
         from nanobot.core.config.schema import WebSearchConfig
-
+        super().__init__()
         self.config = config if config is not None else WebSearchConfig()
         self.proxy = proxy
 
@@ -129,7 +135,7 @@ class WebSearchTool(Tool):
         """DuckDuckGo searches are serialized because ddgs is not concurrency-safe."""
         return self._effective_provider() == "duckduckgo"
 
-    async def execute(self, query: str, count: int | None = None, **kwargs: Any) -> str:
+    async def _arun(self, query: str, count: int | None = None) -> str:
         provider = self.config.provider.strip().lower() or "brave"
         n = min(max(count or self.config.max_results, 1), 10)
 
@@ -281,20 +287,22 @@ class WebSearchTool(Tool):
             return f"Error: DuckDuckGo search failed ({e})"
 
 
-@tool_parameters(
-    tool_parameters_schema(
-        url=StringSchema("URL to fetch"),
-        extractMode={
-            "type": "string",
-            "enum": ["markdown", "text"],
-            "default": "markdown",
-        },
-        maxChars=IntegerSchema(0, minimum=100),
-        required=["url"],
-    )
-)
-class WebFetchTool(Tool):
+class WebFetchToolSchema(BaseModel):
+    """Input schema for WebFetchTool."""
+    url: str = Field(description="URL to fetch")
+    extractMode: str = Field(default="markdown", description="Mode: 'markdown' or 'text'", enum=["markdown", "text"])
+    maxChars: int | None = Field(default=None, description="Maximum number of characters to return", ge=100)
+
+
+class WebFetchTool(BaseTool):
     """Fetch and extract content from a URL."""
+    name: str = "web_fetch"
+    description: str = (
+        "Fetch a URL and extract readable content (HTML → markdown/text). "
+        "Output is capped at maxChars (default 50 000). "
+        "Works for most web pages and docs; may fail on login-walled or JS-heavy sites."
+    )
+    args_schema: type[BaseModel] = WebFetchToolSchema
 
     name = "web_fetch"
     description = (
@@ -304,6 +312,7 @@ class WebFetchTool(Tool):
     )
 
     def __init__(self, max_chars: int = 50000, proxy: str | None = None):
+        super().__init__()
         self.max_chars = max_chars
         self.proxy = proxy
 
@@ -311,7 +320,7 @@ class WebFetchTool(Tool):
     def read_only(self) -> bool:
         return True
 
-    async def execute(self, url: str, extractMode: str = "markdown", maxChars: int | None = None, **kwargs: Any) -> Any:
+    async def _arun(self, url: str, extractMode: str = "markdown", maxChars: int | None = None) -> Any:
         async with trace("web_fetch"):
             max_chars = maxChars or self.max_chars
             is_valid, error_msg = _validate_url_safe(url)

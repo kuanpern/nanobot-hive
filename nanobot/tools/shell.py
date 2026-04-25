@@ -11,31 +11,30 @@ from typing import Any
 import structlog
 logger = structlog.get_logger()
 
-from nanobot.tools.base import Tool, tool_parameters
+from langchain_core.tools import BaseTool
+from pydantic import BaseModel, Field
 from nanobot.tools.sandbox import wrap_command
-from nanobot.tools.schema import IntegerSchema, StringSchema, tool_parameters_schema
 from nanobot.core.config.paths import get_media_dir
+
+
+class ExecToolSchema(BaseModel):
+    """Input schema for ExecTool."""
+    command: str = Field(description="The shell command to execute")
+    working_dir: str | None = Field(default=None, description="Optional working directory for the command")
+    timeout: int = Field(
+        default=60,
+        description=(
+            "Timeout in seconds. Increase for long-running commands "
+            "like compilation or installation (default 60, max 600)."
+        ),
+        ge=1,
+        le=600,
+    )
+
 
 _IS_WINDOWS = sys.platform == "win32"
 
-
-@tool_parameters(
-    tool_parameters_schema(
-        command=StringSchema("The shell command to execute"),
-        working_dir=StringSchema("Optional working directory for the command"),
-        timeout=IntegerSchema(
-            60,
-            description=(
-                "Timeout in seconds. Increase for long-running commands "
-                "like compilation or installation (default 60, max 600)."
-            ),
-            minimum=1,
-            maximum=600,
-        ),
-        required=["command"],
-    )
-)
-class ExecTool(Tool):
+class ExecTool(BaseTool):
     """Tool to execute shell commands."""
 
     def __init__(
@@ -48,6 +47,7 @@ class ExecTool(Tool):
         sandbox: str = "",
         path_append: str = "",
         allowed_env_keys: list[str] | None = None,
+        **kwargs: Any,
     ):
         self.timeout = timeout
         self.working_dir = working_dir
@@ -72,10 +72,10 @@ class ExecTool(Tool):
             r"\bsed\s+-i[^|;&<>]*(?:history\.jsonl|\.dream_cursor)",  # sed -i
         ]
         self.allow_patterns = allow_patterns or []
-        self.restrict_to_workspace = restrict_to_workspace
+        self.restrict_to_workspace = restrict_to_workspace # This is a config, not a tool parameter
         self.path_append = path_append
         self.allowed_env_keys = allowed_env_keys or []
-
+        super().__init__(**kwargs)
     @property
     def name(self) -> str:
         return "exec"
@@ -97,10 +97,8 @@ class ExecTool(Tool):
     def exclusive(self) -> bool:
         return True
 
-    async def execute(
-        self, command: str, working_dir: str | None = None,
-        timeout: int | None = None, **kwargs: Any,
-    ) -> str:
+    async def _arun(self, command: str, working_dir: str | None = None, timeout: int | None = None) -> str:
+
         cwd = working_dir or self.working_dir or os.getcwd()
 
         # Prevent an LLM-supplied working_dir from escaping the configured

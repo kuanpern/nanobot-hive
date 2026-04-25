@@ -72,8 +72,7 @@ class MyTool(Tool):
     def _is_sensitive_field_name(cls, name: str) -> bool:
         lowered = name.lower()
         return lowered in cls._SENSITIVE_NAMES or any(
-            part in cls._SENSITIVE_NAMES for part in lowered.split("_")
-        )
+            part in cls._SENSITIVE_NAMES for part in lowered.split("_"))
 
     RESTRICTED: dict[str, dict[str, Any]] = {
         "max_iterations":        {"type": int, "min": 1,   "max": 100},
@@ -83,11 +82,38 @@ class MyTool(Tool):
 
     _MAX_RUNTIME_KEYS = 64
 
-    def __init__(self, loop: AgentLoop, modify_allowed: bool = True) -> None:
+
+class MyToolSchema(BaseModel):
+    """Input schema for MyTool."""
+    action: str = Field(description="Action to perform", enum=["check", "set"])
+    key: str | None = Field(
+        default=None,
+        description=(
+            "Dot-path for check/set. Examples: 'max_iterations', 'workspace', 'provider_retry_mode'. "
+            "For check without key, shows all config values."
+        ),
+    )
+    value: Any = Field(
+        default=None,
+        description=(
+            "New value (for set). Type must match target (int for max_iterations/context_window_tokens, "
+            "str for model)."
+        ),
+    )
+
+    @model_validator(mode="after")
+    def validate_set_action(self) -> "MyToolSchema":
+        if self.action == "set" and self.key is None:
+            raise ValueError("key is required when action='set'")
+        return self
+
+
+class MyTool(BaseTool):
+    """Check and set the agent loop's runtime configuration."""
+    def __init__(self, loop: AgentLoop, modify_allowed: bool = True, **kwargs: Any) -> None:
         self._loop = loop
         self._modify_allowed = modify_allowed
-        self._channel = ""
-        self._chat_id = ""
+        super().__init__(**kwargs)
 
     def __deepcopy__(self, memo: dict[int, Any]) -> MyTool:
         cls = self.__class__
@@ -102,8 +128,6 @@ class MyTool(Tool):
     def set_context(self, channel: str, chat_id: str) -> None:
         self._channel = channel
         self._chat_id = chat_id
-
-    @property
     def name(self) -> str:
         return "my"
 
@@ -134,28 +158,8 @@ class MyTool(Tool):
                 "\nIMPORTANT: Before setting state, predict the potential impact. "
                 "If the operation could cause crashes or instability "
                 "(e.g. changing model), warn the user first."
-            )
+        )
         return base
-
-    @property
-    def parameters(self) -> dict[str, Any]:
-        return {
-            "type": "object",
-            "properties": {
-                "action": {
-                    "type": "string",
-                    "enum": ["check", "set"],
-                    "description": "Action to perform",
-                },
-                "key": {
-                    "type": "string",
-                    "description": "Dot-path for check/set. Examples: 'max_iterations', 'workspace', 'provider_retry_mode'. "
-                    "For check without key, shows all config values.",
-                },
-                "value": {"description": "New value (for set). Type must match target (int for max_iterations/context_window_tokens, str for model)."},
-            },
-            "required": ["action"],
-        }
 
     def _audit(self, action: str, detail: str) -> None:
         session = f"{self._channel}:{self._chat_id}" if self._channel else "unknown"
@@ -285,7 +289,7 @@ class MyTool(Tool):
     # Action dispatch
     # ------------------------------------------------------------------
 
-    async def execute(
+    async def _arun(
         self,
         action: str,
         key: str | None = None,

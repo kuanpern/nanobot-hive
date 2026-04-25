@@ -5,9 +5,9 @@ from __future__ import annotations
 import json
 import uuid
 from typing import Any
+from langchain_core.tools import BaseTool
+from pydantic import BaseModel, Field
 
-from nanobot.tools.base import tool_parameters
-from nanobot.tools.schema import IntegerSchema, StringSchema, tool_parameters_schema
 from nanobot.tools.filesystem import _FsTool
 
 
@@ -37,25 +37,29 @@ def _make_empty_notebook() -> dict:
     }
 
 
-@tool_parameters(
-    tool_parameters_schema(
-        path=StringSchema("Path to the .ipynb notebook file"),
-        cell_index=IntegerSchema(0, description="0-based index of the cell to edit", minimum=0),
-        new_source=StringSchema("New source content for the cell"),
-        cell_type=StringSchema(
+class NotebookEditToolSchema(BaseModel):
+    """Input schema for NotebookEditTool."""
+    path: str = Field(description="Path to the .ipynb notebook file")
+    cell_index: int = Field(default=0, description="0-based index of the cell to edit", ge=0)
+    new_source: str = Field(default="", description="New source content for the cell")
+    cell_type: str = Field(
+        default="code",
+        description=(
             "Cell type: 'code' or 'markdown' (default: code)",
-            enum=["code", "markdown"],
         ),
-        edit_mode=StringSchema(
-            "Mode: 'replace' (default), 'insert' (after target), or 'delete'",
-            enum=["replace", "insert", "delete"],
-        ),
-        required=["path", "cell_index"],
+        enum=["code", "markdown"],
     )
-)
-class NotebookEditTool(_FsTool):
-    """Edit Jupyter notebook cells: replace, insert, or delete."""
+    edit_mode: str = Field(
+        default="replace",
+        description=(
+            "Mode: 'replace' (default), 'insert' (after target), or 'delete'",
+        ),
+        enum=["replace", "insert", "delete"],
+    )
 
+
+class NotebookEditTool(BaseTool):
+    """Edit Jupyter notebook cells: replace, insert, or delete."""
     _VALID_CELL_TYPES = frozenset({"code", "markdown"})
     _VALID_EDIT_MODES = frozenset({"replace", "insert", "delete"})
 
@@ -71,9 +75,23 @@ class NotebookEditTool(_FsTool):
             "insert adds a new cell after the target index, "
             "delete removes the cell at the index. "
             "cell_index is 0-based."
-        )
+        ) # This description is dynamic, but BaseTool expects a static string.
+    args_schema: type[BaseModel] = NotebookEditToolSchema
 
-    async def execute(
+    workspace: Path | None = None
+    allowed_dir: Path | None = None
+    extra_allowed_dirs: list[Path] | None = None
+
+    def __init__(self, workspace: Path | None = None, allowed_dir: Path | None = None, extra_allowed_dirs: list[Path] | None = None, **kwargs: Any):
+        super().__init__(**kwargs)
+        self.workspace = workspace
+        self.allowed_dir = allowed_dir
+        self.extra_allowed_dirs = extra_allowed_dirs
+
+    def _resolve(self, path: str) -> Path:
+        return _FsTool(self.workspace, self.allowed_dir, self.extra_allowed_dirs)._resolve(path)
+
+    async def _arun(
         self,
         path: str | None = None,
         cell_index: int = 0,

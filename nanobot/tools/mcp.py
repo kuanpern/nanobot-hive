@@ -8,7 +8,8 @@ import httpx
 import structlog
 logger = structlog.get_logger()
 
-from nanobot.tools.base import Tool
+from langchain_core.tools import BaseTool
+from pydantic import BaseModel, create_model
 from nanobot.tools.registry import ToolRegistry
 
 # Transient connection errors that warrant a single retry.
@@ -91,13 +92,20 @@ def _normalize_schema_for_openai(schema: Any) -> dict[str, Any]:
     normalized.setdefault("required", [])
     return normalized
 
-
-class MCPToolWrapper(Tool):
+class MCPToolWrapper(BaseTool):
     """Wraps a single MCP server tool as a nanobot Tool."""
 
     def __init__(self, session, server_name: str, tool_def, tool_timeout: int = 30):
+        super().__init__()
         self._session = session
         self._original_name = tool_def.name
+
+        # Dynamically create Pydantic model for args_schema
+        raw_schema = tool_def.inputSchema or {"type": "object", "properties": {}}
+        normalized_schema = _normalize_schema_for_openai(raw_schema)
+        self.args_schema = self._create_dynamic_pydantic_model(normalized_schema)
+
+        # Set name and description for BaseTool
         self._name = f"mcp_{server_name}_{tool_def.name}"
         self._description = tool_def.description or tool_def.name
         raw_schema = tool_def.inputSchema or {"type": "object", "properties": {}}
@@ -112,11 +120,20 @@ class MCPToolWrapper(Tool):
     def description(self) -> str:
         return self._description
 
-    @property
-    def parameters(self) -> dict[str, Any]:
-        return self._parameters
+    def _create_dynamic_pydantic_model(self, schema: dict[str, Any]) -> type[BaseModel]:
+        fields = {}
+        for prop_name, prop_schema in schema.get("properties", {}).items():
+            field_type = Any # Default to Any if type cannot be easily mapped
+            if "type" in prop_schema:
+                if prop_schema["type"] == "string": field_type = str
+                elif prop_schema["type"] == "integer": field_type = int
+                elif prop_schema["type"] == "boolean": field_type = bool
+                elif prop_schema["type"] == "array": field_type = list
+                elif prop_schema["type"] == "object": field_type = dict
+            fields[prop_name] = (field_type, ...) if prop_name in schema.get("required", []) else (field_type, None)
+        return create_model(f"{self._name.replace('-', '_').replace('.', '_')}Input", **fields)
 
-    async def execute(self, **kwargs: Any) -> str:
+    async def _arun(self, **kwargs: Any) -> str:
         from nanobot.tools.mcp import types
 
         for attempt in range(2):  # At most 1 retry
@@ -176,13 +193,18 @@ class MCPToolWrapper(Tool):
         return "(MCP tool call failed)"  # Unreachable, but satisfies type checkers
 
 
-class MCPResourceWrapper(Tool):
+class MCPResourceWrapper(BaseTool):
     """Wraps an MCP resource URI as a read-only nanobot Tool."""
 
     def __init__(self, session, server_name: str, resource_def, resource_timeout: int = 30):
+        super().__init__()
         self._session = session
         self._uri = resource_def.uri
+
+        # Set name and description for BaseTool
         self._name = f"mcp_{server_name}_resource_{resource_def.name}"
+        self.name = self._name # BaseTool expects name as an attribute
+
         desc = resource_def.description or resource_def.name
         self._description = f"[MCP Resource] {desc}\nURI: {self._uri}"
         self._parameters: dict[str, Any] = {
@@ -190,11 +212,9 @@ class MCPResourceWrapper(Tool):
             "properties": {},
             "required": [],
         }
+        # For resources, the args_schema is empty
+        self.args_schema = create_model(f"{self._name.replace('-', '_').replace('.', '_')}Input")
         self._resource_timeout = resource_timeout
-
-    @property
-    def name(self) -> str:
-        return self._name
 
     @property
     def description(self) -> str:
@@ -208,7 +228,7 @@ class MCPResourceWrapper(Tool):
     def read_only(self) -> bool:
         return True
 
-    async def execute(self, **kwargs: Any) -> str:
+    async def _arun(self, **kwargs: Any) -> str:
         from nanobot.tools.mcp import types
 
         for attempt in range(2):
@@ -266,13 +286,18 @@ class MCPResourceWrapper(Tool):
         return "(MCP resource read failed)"  # Unreachable
 
 
-class MCPPromptWrapper(Tool):
+class MCPPromptWrapper(BaseTool):
     """Wraps an MCP prompt as a read-only nanobot Tool."""
 
     def __init__(self, session, server_name: str, prompt_def, prompt_timeout: int = 30):
+        super().__init__()
         self._session = session
         self._prompt_name = prompt_def.name
+
+        # Set name and description for BaseTool
         self._name = f"mcp_{server_name}_prompt_{prompt_def.name}"
+        self.name = self._name # BaseTool expects name as an attribute
+
         desc = prompt_def.description or prompt_def.name
         self._description = (
             f"[MCP Prompt] {desc}\n"
@@ -291,10 +316,10 @@ class MCPPromptWrapper(Tool):
             if arg.required:
                 required.append(arg.name)
         self._parameters: dict[str, Any] = {
-            "type": "object",
-            "properties": properties,
-            "required": required,
-        }
+            "type": "object", "properties": properties, "required": required,
+        } # This is the raw schema, need to convert to Pydantic model
+        self.args_schema = self._create_dynamic_pydantic_model(self._parameters)
+
 
     @property
     def name(self) -> str:

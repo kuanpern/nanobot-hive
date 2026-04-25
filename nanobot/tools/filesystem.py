@@ -11,11 +11,9 @@ import asyncio
 
 from pydantic import BaseModel, Field, field_validator
 from langchain_core.tools import BaseTool
-from nanobot.tools import file_state
+from nanobot.tools import file_state # This is still used
 from nanobot.utils.helpers import build_image_content_blocks, detect_image_mime
 from nanobot.core.config.paths import get_media_dir
-from nanobot.tools.base import Tool, tool_parameters
-from nanobot.tools.schema import BooleanSchema, IntegerSchema, StringSchema, tool_parameters_schema
 
 
 def _resolve_path(
@@ -147,7 +145,7 @@ class ReadFileTool(BaseTool):
             if not path:
                 return "Error reading file: Unknown path"
 
-            # Device path blacklist
+            # Device path blacklist (using the standalone _is_blocked_device)
             if _is_blocked_device(path):
                 return f"Error: Reading {path} is blocked (device path that could hang or produce infinite output)."
             
@@ -637,16 +635,16 @@ class EditFileTool(BaseTool):
 
     async def _arun(self, path: str, old_text: str, new_text: str, replace_all: bool = False) -> str:
         try:
-            # 1. Resolve path (Existing security guard)
+            # Resolve path (Existing security guard)
             fp = _resolve_path(path, self.workspace, self.allowed_dir)
             if not fp.exists():
                 return f"Error: File not found: {path}"
 
-            # 2. Existing core logic (Read + Match + Replace)
+            # Read + Match + Replace
             content = fp.read_text(encoding="utf-8").replace("\r\n", "\n")
             norm_old = old_text.replace("\r\n", "\n")
             
-            # Using your existing _find_matches utility
+            # Using _find_matches utility
             matches = _find_matches(content, norm_old)
             if not matches:
                 return self._not_found_msg(old_text, content, path)
@@ -655,11 +653,11 @@ class EditFileTool(BaseTool):
             if len(matches) > 1 and not replace_all:
                 return "Warning: old_text appears multiple times. Provide more context or set replace_all=true."
 
-            # 4. Perform Edit (Your existing string slicing logic)
+            # 4. Perform Edit
             new_content = content
             selected = matches if replace_all else matches[:1]
             for match in reversed(selected):
-                # Apply your existing quote/indentation preservation helpers
+                # Quote/indentation preservation helpers
                 replacement = _preserve_quote_style(norm_old, match.text, new_text)
                 replacement = _reindent_like_match(norm_old, match.text, replacement)
                 new_content = new_content[:match.start] + replacement + new_content[match.end():]
@@ -678,20 +676,36 @@ class EditFileTool(BaseTool):
 # list_dir
 # ---------------------------------------------------------------------------
 
-@tool_parameters(
-    tool_parameters_schema(
-        path=StringSchema("The directory path to list"),
-        recursive=BooleanSchema(description="Recursively list all files (default false)"),
-        max_entries=IntegerSchema(
-            200,
-            description="Maximum entries to return (default 200)",
-            minimum=1,
-        ),
-        required=["path"],
+class ListDirToolSchema(BaseModel):
+    """Input schema for ListDirTool."""
+    path: str = Field(description="The directory path to list")
+    recursive: bool = Field(default=False, description="Recursively list all files (default false)")
+    max_entries: int = Field(
+        default=200,
+        description="Maximum entries to return (default 200)",
+        ge=1,
     )
-)
-class ListDirTool(_FsTool):
+
+
+class ListDirTool(BaseTool):
     """List directory contents with optional recursion."""
+    name: str = "list_dir"
+    description: str = (
+        "List the contents of a directory. "
+        "Set recursive=true to explore nested structure. "
+        "Common noise directories (.git, node_modules, __pycache__, etc.) are auto-ignored."
+    )
+    args_schema: type[BaseModel] = ListDirToolSchema
+
+    workspace: Path | None = None
+    allowed_dir: Path | None = None
+    extra_allowed_dirs: list[Path] | None = None
+
+    def __init__(self, workspace: Path | None = None, allowed_dir: Path | None = None, extra_allowed_dirs: list[Path] | None = None, **kwargs: Any):
+        super().__init__(**kwargs)
+        self.workspace = workspace
+        self.allowed_dir = allowed_dir
+        self.extra_allowed_dirs = extra_allowed_dirs
 
     _DEFAULT_MAX = 200
     _IGNORE_DIRS = {
@@ -700,25 +714,17 @@ class ListDirTool(_FsTool):
         ".ruff_cache", ".coverage", "htmlcov",
     }
 
-    @property
-    def name(self) -> str:
-        return "list_dir"
-
-    @property
-    def description(self) -> str:
-        return (
-            "List the contents of a directory. "
-            "Set recursive=true to explore nested structure. "
-            "Common noise directories (.git, node_modules, __pycache__, etc.) are auto-ignored."
-        )
+    def _resolve(self, path: str) -> Path:
+        # Use the standalone _resolve_path function
+        return _resolve_path(path, self.workspace, self.allowed_dir, self.extra_allowed_dirs)
 
     @property
     def read_only(self) -> bool:
         return True
 
-    async def execute(
+    async def _arun(
         self, path: str | None = None, recursive: bool = False,
-        max_entries: int | None = None, **kwargs: Any,
+        max_entries: int | None = None,
     ) -> str:
         try:
             if path is None:

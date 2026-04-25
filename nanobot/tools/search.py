@@ -8,7 +8,7 @@ import re
 from pathlib import Path, PurePosixPath
 from typing import Any, Iterable, TypeVar
 
-from nanobot.tools.filesystem import ListDirTool, _FsTool
+from nanobot.tools.filesystem import ListDirTool, _resolve_path # _FsTool is removed, use _resolve_path
 
 _DEFAULT_HEAD_LIMIT = 250
 T = TypeVar("T")
@@ -203,7 +203,7 @@ class GlobTool(_SearchTool):
         **kwargs: Any,
     ) -> str:
         try:
-            root = self._resolve(path or ".")
+            root = self._resolve(path)
             if not root.exists():
                 return f"Error: Path not found: {path}"
             if not root.is_dir():
@@ -215,8 +215,8 @@ class GlobTool(_SearchTool):
                 limit = max_results
             else:
                 limit = _DEFAULT_HEAD_LIMIT
-            include_files = entry_type in {"files", "both"}
-            include_dirs = entry_type in {"dirs", "both"}
+            include_files = entry_type in {"files", "both"} # entry_type is a string
+            include_dirs = entry_type in {"dirs", "both"} # entry_type is a string
             matches: list[tuple[str, float]] = []
             for entry in self._iter_entries(
                 root,

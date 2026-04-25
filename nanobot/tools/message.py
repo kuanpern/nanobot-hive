@@ -3,25 +3,30 @@
 from contextvars import ContextVar
 from typing import Any, Awaitable, Callable
 
-from nanobot.tools.base import Tool, tool_parameters
-from nanobot.tools.schema import ArraySchema, StringSchema, tool_parameters_schema
+from langchain_core.tools import BaseTool
+from pydantic import BaseModel, Field
 from nanobot.agent.events import OutboundMessage
 
 
-@tool_parameters(
-    tool_parameters_schema(
-        content=StringSchema("The message content to send"),
-        channel=StringSchema("Optional: target channel (telegram, discord, etc.)"),
-        chat_id=StringSchema("Optional: target chat/user ID"),
-        media=ArraySchema(
-            StringSchema(""),
-            description="Optional: list of file paths to attach (images, audio, documents)",
-        ),
-        required=["content"],
-    )
-)
-class MessageTool(Tool):
+class MessageToolSchema(BaseModel):
+    """Input schema for MessageTool."""
+    content: str = Field(description="The message content to send")
+    channel: str | None = Field(default=None, description="Optional: target channel (telegram, discord, etc.)")
+    chat_id: str | None = Field(default=None, description="Optional: target chat/user ID")
+    media: list[str] | None = Field(default=None, description="Optional: list of file paths to attach (images, audio, documents)")
+
+
+class MessageTool(BaseTool):
     """Tool to send messages to users on chat channels."""
+
+    name: str = "message"
+    description: str = (
+        "Send a message to the user, optionally with file attachments. "
+        "This is the ONLY way to deliver files (images, documents, audio, video) to the user. "
+        "Use the 'media' parameter with file paths to attach files. "
+        "Do NOT use read_file to send files — that only reads content for your own analysis."
+    )
+    args_schema: type[BaseModel] = MessageToolSchema
 
     def __init__(
         self,
@@ -29,7 +34,9 @@ class MessageTool(Tool):
         default_channel: str = "",
         default_chat_id: str = "",
         default_message_id: str | None = None,
+        **kwargs: Any,
     ):
+        super().__init__(**kwargs)
         self._send_callback = send_callback
         self._default_channel: ContextVar[str] = ContextVar("message_default_channel", default=default_channel)
         self._default_chat_id: ContextVar[str] = ContextVar("message_default_chat_id", default=default_chat_id)
@@ -61,27 +68,12 @@ class MessageTool(Tool):
     def _sent_in_turn(self, value: bool) -> None:
         self._sent_in_turn_var.set(value)
 
-    @property
-    def name(self) -> str:
-        return "message"
-
-    @property
-    def description(self) -> str:
-        return (
-            "Send a message to the user, optionally with file attachments. "
-            "This is the ONLY way to deliver files (images, documents, audio, video) to the user. "
-            "Use the 'media' parameter with file paths to attach files. "
-            "Do NOT use read_file to send files — that only reads content for your own analysis."
-        )
-
-    async def execute(
+    async def _arun(
         self,
         content: str,
         channel: str | None = None,
         chat_id: str | None = None,
-        message_id: str | None = None,
         media: list[str] | None = None,
-        **kwargs: Any
     ) -> str:
         from nanobot.utils.helpers import strip_think
         content = strip_think(content)
@@ -91,6 +83,7 @@ class MessageTool(Tool):
 
         channel = channel or default_channel
         chat_id = chat_id or default_chat_id
+        message_id: str | None = None
         # Only inherit default message_id when targeting the same channel+chat.
         # Cross-chat sends must not carry the original message_id, because
         # some channels (e.g. Feishu) use it to determine the target
