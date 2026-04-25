@@ -42,7 +42,6 @@ from nanobot.utils.document import extract_documents
 from nanobot.utils.helpers import image_placeholder_text
 from nanobot.utils.helpers import truncate_text as truncate_text_fn
 from nanobot.utils.runtime import EMPTY_FINAL_RESPONSE_MESSAGE
-from nanobot.agent.coordinator import AgentCoordinator
 from nanobot.agent.engine.checkpoint import get_checkpointer
 from nanobot.agent.engine.graph import create_agent_graph
 
@@ -52,14 +51,24 @@ if TYPE_CHECKING:
 
 
 UNIFIED_SESSION_KEY = "unified:default"
+LAST_N_MESSAGES = 100
 
 from langgraph.graph import StateGraph, END
 from typing import TypedDict, Annotated
 from langgraph.prebuilt import ToolNode
 from langchain_core.messages import BaseMessage, HumanMessage
 
+
+async def graph_observer(event: dict):
+    """Central listener for every node execution."""
+    kind = event["event"]
+    if kind == "on_node_end":
+        node = event["node"]
+        record_metric("nanobot_agent_iterations_total", labels={"outcome": node})
+        logger.debug(f"Node finished: {node}")
+
 class AgentState(TypedDict):
-    messages: Annotated[list[BaseMessage], lambda x, y: x + y]
+    messages: Annotated[list[BaseMessage], lambda x, y: (x + y)[-LAST_N_MESSAGES:]]
 
 
 class AgentLoop:
@@ -391,6 +400,9 @@ class AgentLoop:
                 self._pending_queues[effective_key]
             )
             app = graph.compile(checkpointer=checkpointer)
+
+            # Stream events
+            # app.astream_events(inputs, config=config, version="v2")
             
             # 4. Invoke with Thread ID (the session state)
             config = {"configurable": {"thread_id": effective_key}}

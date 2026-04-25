@@ -1,8 +1,12 @@
-# nanobot/agent/engine/checkpoint.py
-from langgraph.checkpoint.sqlite import SqliteSaver
+from typing import TypedDict
+import sqlite3
 from pathlib import Path
+from langgraph.checkpoint.sqlite.aio import AsyncSqliteSaver
+from typing import Annotated
 
 def get_checkpointer(workspace: Path):
-    # Save graph state to a sqlite file 
     db_path = workspace / "sessions" / "checkpoints.sqlite"
-    return SqliteSaver.from_conn_string(str(db_path))
+    conn = sqlite3.connect(str(db_path), check_same_thread=False)    
+    checkpointer = AsyncSqliteSaver(conn)
+    
+    return checkpointer
