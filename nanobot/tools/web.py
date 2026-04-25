@@ -7,7 +7,7 @@ import html
 import json
 import os
 import re
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, Optional
 from urllib.parse import quote, urlparse
 
 import httpx
@@ -297,19 +297,14 @@ class WebFetchToolSchema(BaseModel):
 class WebFetchTool(BaseTool):
     """Fetch and extract content from a URL."""
     name: str = "web_fetch"
+    required_scope = "browser_cookie" # Declarative security
+
     description: str = (
         "Fetch a URL and extract readable content (HTML → markdown/text). "
         "Output is capped at maxChars (default 50 000). "
         "Works for most web pages and docs; may fail on login-walled or JS-heavy sites."
     )
     args_schema: type[BaseModel] = WebFetchToolSchema
-
-    name = "web_fetch"
-    description = (
-        "Fetch a URL and extract readable content (HTML → markdown/text). "
-        "Output is capped at maxChars (default 50 000). "
-        "Works for most web pages and docs; may fail on login-walled or JS-heavy sites."
-    )
 
     def __init__(self, max_chars: int = 50000, proxy: str | None = None):
         super().__init__()
@@ -320,9 +315,17 @@ class WebFetchTool(BaseTool):
     def read_only(self) -> bool:
         return True
 
-    async def _arun(self, url: str, extractMode: str = "markdown", maxChars: int | None = None) -> Any:
+    async def _arun(
+        self, 
+        url: str, 
+        extractMode: str = "markdown", 
+        maxChars: int | None = None,
+        auth_secret: Optional[str] = None,
+        **kwargs: Any
+    ) -> Any:
         async with trace("web_fetch"):
             max_chars = maxChars or self.max_chars
+            
             is_valid, error_msg = _validate_url_safe(url)
             if not is_valid:
                 return json.dumps({"error": f"URL validation failed: {error_msg}", "url": url}, ensure_ascii=False)
@@ -345,20 +348,23 @@ class WebFetchTool(BaseTool):
             except Exception as e:
                 logger.debug("Pre-fetch image detection failed for {}: {}", url, e)
 
-            result = await self._fetch_jina(url, max_chars)
+            result = await self._fetch_jina(url, max_chars, auth_secret=auth_secret)
             if result is None:
                 result = await self._fetch_readability(url, extractMode, max_chars)
             resp_len = len(result) if isinstance(result, str) else len(str(result))
             record_metric("nanobot_web_fetch_bytes", float(resp_len))
             return result
 
-    async def _fetch_jina(self, url: str, max_chars: int) -> str | None:
-        """Try fetching via Jina Reader API. Returns None on failure."""
+    async def _fetch_jina(self, url: str, max_chars: int, auth_secret: str | None) -> str | None:
+        """Try fetching via Jina Reader API."""
         try:
             headers = {"Accept": "application/json", "User-Agent": USER_AGENT}
-            jina_key = os.environ.get("JINA_API_KEY", "")
-            if jina_key:
-                headers["Authorization"] = f"Bearer {jina_key}"
+            
+            # The tool only uses the secret IF the CredentialManager provided it.
+            # No logic here to "go fetch it yourself" from os.environ.
+            if auth_secret:
+                headers["Authorization"] = f"Bearer {auth_secret}"
+                
             async with httpx.AsyncClient(proxy=self.proxy, timeout=20.0) as client:
                 r = await client.get(f"https://r.jina.ai/{url}", headers=headers)
                 if r.status_code == 429:

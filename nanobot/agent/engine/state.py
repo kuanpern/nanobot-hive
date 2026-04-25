@@ -1,11 +1,18 @@
-from typing import Annotated, TypedDict, Sequence, Any, Dict
 import operator
+from typing import Annotated, TypedDict, Sequence, Any, Dict
 from langchain_core.messages import BaseMessage
+
+from nanobot.identity import Identity
+from nanobot.credential_manager import CredentialManager
+
 
 class AgentState(TypedDict):
     # Appends new messages to the existing list
     messages: Annotated[Sequence[BaseMessage], operator.add]
-    
+
+    identity: Identity
+    cred_manager: CredentialManager 
+
     # Track iterations to respect AgentDefaults.max_tool_iterations
     iteration: int
     

@@ -1,7 +1,12 @@
+import json
+from typing import Any
+
 from langgraph.graph import StateGraph, END
 from langchain_core.messages import HumanMessage, AIMessage
 from langgraph.prebuilt import ToolNode
 from nanobot.tools.base import ToolMessage
+from nanobot.agent.engine.state import AgentState
+
 from .state import AgentState
 from .runtime import _DEFAULT_ERROR_MESSAGE, build_length_recovery_message
 
@@ -11,7 +16,32 @@ logger = structlog.get_logger()
 # Configurable constants
 MAX_ITERATIONS = 200
 
-import json
+async def secure_tool_node(state: AgentState, tool_call: Dict[str, Any]):
+    tool_name = tool_call["name"]
+    args = tool_call["args"]
+    
+    # 1. Access the Registry
+    # Assuming 'registry' is available in scope or passed in the graph
+    tool = registry._tools.get(tool_name)
+    
+    # 2. Extract scope from the tool object (Self-documenting!)
+    scope = getattr(tool, "required_scope", None)
+    
+    # 3. Authorize and Execute
+    cred_manager = state["cred_manager"]
+    
+    # If no scope is defined, execute without auth
+    if not scope:
+        return await registry.execute(tool_name, args)
+        
+    try:
+        async with cred_manager.authorize(scope, tool_name) as secret:
+            # We explicitly pass the secret as 'auth_secret' 
+            # to keep the signature uniform across all tools.
+            args["auth_secret"] = secret
+            return await registry.execute(tool_name, args)
+    except PermissionError as e:
+        return f"Security Violation: {e}"
 
 def update_state_from_tools(state: AgentState):
     """Node that reconciles ToolMessages into the persistent AgentState."""

@@ -341,7 +341,11 @@ class AgentLoop:
             # 2. Prepare Inputs
             # The preprocessor now handles context tagging and document extraction
             inputs = {"messages": [await self.preprocessor.process(msg)]}
-            config = {"configurable": {"thread_id": effective_key}}
+            config = {"configurable": {
+                "thread_id": effective_key,
+                "identity": self.identity,
+                "cred_manager": self.cred_manager
+            }}
             
             # 3. Invoke Graph (No re-compilation!)
             # LangGraph handles the message injection from the state 
@@ -399,6 +403,8 @@ class AgentLoop:
         # 1. Initialize State
         initial_state: AgentState = {
             "messages": [HumanMessage(content=content)],
+            "identity": self.identity,
+            "cred_manager": self.cred_manager,
             "iteration": 0,
             "subagent_status": {},
             "scratchpad": self._runtime_vars, # Reference to current loop variables
@@ -408,7 +414,11 @@ class AgentLoop:
         
         # 2. Invoke Graph via checkpoint
         # thread_id persists the session in your sqlite DB
-        config = {"configurable": {"thread_id": session_key}}
+        config = {"configurable": {
+            "thread_id": session_key,
+            "identity": self.identity,           # Injected here
+            "cred_manager": self.cred_manager    # Injected here
+        }}
         
         # 3. Execution
         final_state = await self.app.ainvoke(initial_state, config=config)
